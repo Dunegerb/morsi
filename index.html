@@ -37,7 +37,7 @@
             --accent-blue: #2A52AA;
             --accent-red: #AD1E20;
             --accent-green: #39CC59;
-            --calendar-past: #505050; /* Adjusted for better visibility based on spec */
+            --calendar-past: #505050;
             --font-main: 'Instrument Sans', sans-serif;
             --card-radius: 24px;
             --h-safe-area: env(safe-area-inset-left);
@@ -61,6 +61,7 @@
         body {
             width: 100%;
             height: 100%;
+            max-width: 430px;
             margin: 0 auto;
             background-color: var(--bg-main);
             color: var(--text-primary);
@@ -69,6 +70,7 @@
             flex-direction: column;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 0 60px rgba(0,0,0,0.5);
         }
 
         /*------------------------------------*\
@@ -105,7 +107,7 @@
             display: flex;
             justify-content: space-around;
             align-items: flex-start;
-            padding: 0.75rem var(--h-safe-area) calc(0.5rem + var(--v-safe-area-bottom)) var(--h-safe-area);
+            padding: 0.75rem var(--h-safe-area) calc(1.5rem + var(--v-safe-area-bottom)) var(--h-safe-area);
             background: var(--bg-main);
         }
 
@@ -168,8 +170,8 @@
             flex-grow: 1;
             position: relative;
             margin-top: 1rem;
-            display: flex; /* Added for alignment */
-            flex-direction: column; /* Added for alignment */
+            display: flex; 
+            flex-direction: column;
         }
         .chart-background {
             position: absolute;
@@ -184,7 +186,6 @@
             height: calc(100% - 2rem);
             display: flex;
             justify-content: space-around;
-            /*  THE CORE FIX, PART 1: The container must stretch its children to give them height. */
             align-items: stretch;
         }
         .bar-wrapper {
@@ -192,7 +193,6 @@
             flex-direction: column;
             align-items: center;
             width: 30%;
-            /* THE CORE FIX, PART 2: The wrapper now pushes its content to the bottom. */
             justify-content: flex-end;
         }
         .bar {
@@ -200,7 +200,6 @@
             max-width: 60px;
             position: relative;
             transform-origin: bottom;
-            /* Height is now controlled exclusively by GSAP for precision */
             height: 0;
             border-radius: 20px;
         }
@@ -213,8 +212,9 @@
             transform: translateX(-50%);
             width: 28px;
             height: 28px;
-            /* Ensuring icon color is always correct */
             color: white;
+            /* Icons start invisible and are controlled by GSAP */
+            visibility: hidden; 
         }
         .bar-icon svg { width: 100%; height: 100%; }
         .bar-label {
@@ -254,7 +254,7 @@
             pointer-events: none;
         }
         .stage-list {
-            transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            /* Now animated via GSAP for better control */
         }
         .stage-item {
             padding: 0.1rem 0.5rem;
@@ -365,7 +365,7 @@
                 <div class="count-value">
                     <span class="count-label">Count:</span>
                     <div class="count-number-wrapper">
-                        <span id="day-count">13</span>
+                        <span id="day-count">0</span>
                         <span class="count-unit">days</span>
                     </div>
                 </div>
@@ -389,7 +389,7 @@
                 <div class="chart-bars">
                     <div class="bar-wrapper">
                         <div id="you-bar" class="bar blue-bar">
-                            <div class="bar-icon">
+                            <div id="you-bar-icon" class="bar-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                                 </svg>
@@ -399,9 +399,9 @@
                     </div>
                     <div class="bar-wrapper">
                         <div id="impulses-bar" class="bar red-bar">
-                            <div class="bar-icon">
+                            <div id="impulses-bar-icon" class="bar-icon">
                                 <svg viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM8.5 8c.83 0 1.5.67 1.5 1.5S9.33 11 8.5 11s-1.5-.67-1.5-1.5S7.67 8 8.5 8zm7 0c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-2.53 8.5H8.03c-.41 0-.68-.48-.48-.85C8.48 14.4 10.11 13 12 13s3.52 1.4 4.45 2.65c.2.37-.07.85-.48.85z" transform="translate(0 -1)"/>
+                                    <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM8.5 8c.83 0 1.5.67 1.5 1.5S9.33 11 8.5 11s-1.5-.67-1.5-1.5S7.67 8 8.5 8zm7 0c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5zm-2.53 8.5H8.03c-.41 0-.68-.48-.48-.85C8.48 14.4 10.11 13 12 13s3.52 1.4 4.45 2.65c.2.37-.07.85-.48.85z"/>
                                 </svg>
                             </div>
                         </div>
@@ -476,14 +476,14 @@
         document.querySelector('link[rel="manifest"]').setAttribute('href', manifestURL);
     </script>
     <script>
-        // script.js (Refined, Elevated & Embedded)
+        // script.js (Final Architecture for v1.0)
         document.addEventListener('DOMContentLoaded', () => {
             const STATE = {
-                currentDay: 13
+                currentDay: 0
             };
             
             const ALL_STAGES = [
-                { name: "Commitment",  range: [1, 1],   period: "first day" },
+                { name: "Commitment",  range: [0, 1],   period: "first day" },
                 { name: "Temptation",  range: [2, 7],   period: "first week" },
                 { name: "Flatline",    range: [8, 14],  period: "second week" },
                 { name: "Vitality",    range: [15, 21], period: "third week" },
@@ -496,110 +496,15 @@
             const elements = {
                 dayCount: document.getElementById('day-count'),
                 youBar: document.getElementById('you-bar'),
+                youBarIcon: document.getElementById('you-bar-icon'),
                 impulsesBar: document.getElementById('impulses-bar'),
+                impulsesBarIcon: document.getElementById('impulses-bar-icon'),
                 resetButton: document.getElementById('reset-button'),
                 stageList: document.getElementById('stage-list'),
                 stageIndicator: document.querySelector('.stage-indicator'),
                 stagePeriod: document.querySelector('.stage-period'),
                 calendarGrid: document.getElementById('calendar-grid'),
                 cards: document.querySelectorAll('.card')
-            };
-
-            const updateCounter = (day, animate = true) => {
-                gsap.to(elements.dayCount, {
-                    textContent: day,
-                    duration: animate ? 1.5 : 0,
-                    roundProps: "textContent",
-                    ease: "power3.out"
-                });
-            };
-
-            const updateChart = (day, animate = true) => {
-                // Willpower ('you') grows most rapidly in the first 30 days, then tapers off.
-                const youHeight = Math.min(100, 10 + (day / 30) * 90);
-
-                // Impulses decay sharply in the first 14 days, then stabilize at a low level.
-                const impulsesHeight = Math.max(15, 85 - (day / 14) * 70);
-
-                const duration = animate ? 1.8 : 0;
-                const ease = animate ? "elastic.out(1, 0.6)" : "none";
-
-                gsap.to(elements.youBar, { height: `${youHeight}%`, duration, ease });
-                gsap.to(elements.impulsesBar, { height: `${impulsesHeight}%`, duration, ease });
-            };
-
-            const populateVisibleStages = (activeStageIndex) => {
-                elements.stageList.innerHTML = '';
-                const stageWindow = 5;
-                const start = Math.max(0, activeStageIndex - 2);
-                const end = Math.min(ALL_STAGES.length, start + stageWindow);
-
-                for (let i = start; i < end; i++) {
-                    const stage = ALL_STAGES[i];
-                    const item = document.createElement('div');
-                    item.className = 'stage-item';
-                    item.classList.toggle('active', i === activeStageIndex);
-                    const name = document.createElement('span');
-                    name.textContent = stage.name;
-                    item.appendChild(name);
-                    elements.stageList.appendChild(item);
-                }
-            }
-
-            const updateStage = (day, animate = true) => {
-                let activeStageIndex = ALL_STAGES.findIndex(s => day >= s.range[0] && day <= s.range[1]);
-                if (activeStageIndex === -1) activeStageIndex = day > 0 ? ALL_STAGES.length - 1 : 0;
-
-                populateVisibleStages(activeStageIndex);
-                // This check ensures we don't calculate height on an empty list
-                if (elements.stageList.firstElementChild) {
-                    const stageItemHeight = elements.stageList.firstElementChild.offsetHeight;
-                    const listContainerHeight = elements.stageList.parentElement.offsetHeight;
-                    const activeItemVisualIndex = Math.min(2, activeStageIndex);
-                    const offset = (listContainerHeight / 2) - (stageItemHeight / 2);
-                    const targetY = -(activeItemVisualIndex * stageItemHeight) + offset;
-                    
-                    gsap.to(elements.stageList, { y: targetY, duration: animate ? 1.2 : 0, ease: "power3.inOut" });
-                }
-                
-                elements.stageIndicator.querySelectorAll('.indicator-line').forEach((line, index) => {
-                    line.classList.toggle('active', index === 3);
-                });
-                
-                elements.stagePeriod.textContent = ALL_STAGES[activeStageIndex].period;
-            };
-            
-            const updateCalendar = (day, animate = true) => {
-                elements.calendarGrid.innerHTML = '';
-                const totalCircles = 20;
-                const fragment = document.createDocumentFragment();
-
-                for (let i = 1; i <= totalCircles; i++) {
-                    const circle = document.createElement('div');
-                    circle.classList.add('day-circle');
-                    if (i < day) circle.classList.add('past');
-                    else if (i === day) circle.classList.add('current');
-                    else circle.classList.add('future');
-                    fragment.appendChild(circle);
-                }
-                elements.calendarGrid.appendChild(fragment);
-
-                if (animate) {
-                    // We return the animation so it can be added to a master timeline
-                    return gsap.fromTo('.day-circle', { scale: 0 }, {
-                        scale: 1,
-                        duration: 0.5,
-                        stagger: 0.03,
-                        ease: "back.out(2)"
-                    });
-                } else {
-                     gsap.set('.day-circle', { scale: 1 });
-                }
-            };
-            
-            const handleReset = () => {
-                STATE.currentDay = 0;
-                updateAll(0, true);
             };
 
             const populateStaticContent = () => {
@@ -609,30 +514,112 @@
                     elements.stageIndicator.appendChild(line);
                 }
             };
-
+            
             const updateAll = (day, animate = true) => {
-                 updateCounter(day, animate);
-                 updateChart(day, animate);
-                 updateStage(day, animate);
-                 updateCalendar(day, animate);
+                // === CALCULATIONS ===
+                let activeStageIndex = ALL_STAGES.findIndex(s => day >= s.range[0] && day <= s.range[1]);
+                if (activeStageIndex === -1) activeStageIndex = day > 0 ? ALL_STAGES.length - 1 : 0;
+                
+                // Willpower ('you') starts low and grows.
+                const youHeight = Math.min(100, 10 + (day / 30) * 90);
+                // Impulses start high and decay.
+                const impulsesHeight = Math.max(15, 85 - (day / 14) * 70);
+
+                // Icon visibility logic: icons appear after bars reach a certain size.
+                const youIconAlpha = youHeight > 25 ? 1 : 0;
+                const youIconScale = youIconAlpha ? 1 : 0.5;
+                const impulsesIconAlpha = impulsesHeight > 25 ? 1 : 0;
+                const impulsesIconScale = impulsesIconAlpha ? 1 : 0.5;
+
+
+                // === DOM UPDATES & ANIMATIONS ===
+                const tl = gsap.timeline();
+                const duration = animate ? 1.5 : 0;
+
+                // 1. Update Counter
+                tl.to(elements.dayCount, {
+                    textContent: day,
+                    duration: animate ? 1.2 : 0,
+                    roundProps: "textContent",
+                    ease: "power2.inOut"
+                });
+
+                // 2. Update Chart and Icons
+                tl.to(elements.youBar, { height: `${youHeight}%`, duration, ease: "elastic.out(1, 0.7)" }, 0);
+                tl.to(elements.youBarIcon, { autoAlpha: youIconAlpha, scale: youIconScale, duration: animate ? 0.6 : 0, ease: "back.out(2)" }, 0.1);
+                tl.to(elements.impulsesBar, { height: `${impulsesHeight}%`, duration, ease: "elastic.out(1, 0.7)" }, 0);
+                tl.to(elements.impulsesBarIcon, { autoAlpha: impulsesIconAlpha, scale: impulsesIconScale, duration: animate ? 0.6 : 0, ease: "back.out(2)" }, 0.1);
+
+                // 3. Update Stage
+                elements.stagePeriod.textContent = ALL_STAGES[activeStageIndex].period;
+                
+                // Regenerate stage list for scrolling effect
+                (() => {
+                    elements.stageList.innerHTML = '';
+                    const stageWindow = 5;
+                    const start = Math.max(0, activeStageIndex - 2);
+                    const end = Math.min(ALL_STAGES.length, start + stageWindow);
+
+                    for (let i = start; i < end; i++) {
+                        const stage = ALL_STAGES[i];
+                        const item = document.createElement('div');
+                        item.className = 'stage-item';
+                        item.classList.toggle('active', i === activeStageIndex);
+                        item.innerHTML = `<span>${stage.name}</span>`;
+                        elements.stageList.appendChild(item);
+                    }
+                    if (elements.stageList.firstElementChild) {
+                        const stageItemHeight = elements.stageList.firstElementChild.offsetHeight;
+                        const listContainerHeight = elements.stageList.parentElement.offsetHeight;
+                        const activeItemVisualIndex = Math.min(2, activeStageIndex);
+                        const offset = (listContainerHeight / 2) - (stageItemHeight / 2);
+                        const targetY = -(activeItemVisualIndex * stageItemHeight) + offset;
+                        
+                        gsap.to(elements.stageList, { y: targetY, duration: animate ? 1.2 : 0, ease: "power3.inOut" });
+                    }
+                })();
+
+                elements.stageIndicator.querySelectorAll('.indicator-line').forEach((line, index) => {
+                    line.classList.toggle('active', index === 3);
+                });
+
+                // 4. Update Calendar
+                elements.calendarGrid.innerHTML = '';
+                const totalCircles = 20;
+                const fragment = document.createDocumentFragment();
+                for (let i = 1; i <= totalCircles; i++) {
+                    const circle = document.createElement('div');
+                    circle.className = 'day-circle';
+                    if (day > 0 && i < day) circle.classList.add('past');
+                    else if (day > 0 && i === day) circle.classList.add('current');
+                    else circle.classList.add('future');
+                    fragment.appendChild(circle);
+                }
+                elements.calendarGrid.appendChild(fragment);
+
+                if (animate) {
+                    gsap.fromTo('.day-circle', { scale: 0 }, {
+                        scale: 1, duration: 0.5, stagger: 0.03, ease: "back.out(2)", delay: 0.5
+                    });
+                } else {
+                     gsap.set('.day-circle', { scale: 1 });
+                }
             };
             
+            const handleReset = () => {
+                if (STATE.currentDay === 0) return; // Prevent animation if already at zero
+                STATE.currentDay = 0;
+                updateAll(STATE.currentDay, true);
+            };
+
             const init = () => {
                 populateStaticContent();
                 
-                // Set initial state without animation for immediate feedback if JS is slow
-                updateCounter(STATE.currentDay, false);
-                updateStage(STATE.currentDay, false);
-                updateCalendar(STATE.currentDay, false); // Creates the dots, but scaled to 0
-                gsap.set('.day-circle', {scale: 0});
-                gsap.set([elements.youBar, elements.impulsesBar], { height: '0%' });
-
-                // THE GRAND ENTRANCE - A MASTER TIMELINE
-                const tl = gsap.timeline({ delay: 0.2 });
-
-                const youTargetHeight = Math.min(100, 10 + (STATE.currentDay / 30) * 90);
-                const impulsesTargetHeight = Math.max(15, 85 - (STATE.currentDay / 14) * 70);
-
+                // Set initial state without animation for immediate visual correctness
+                updateAll(STATE.currentDay, false);
+                
+                // The Grand Entrance
+                const tl = gsap.timeline({ delay: 0.3 });
                 tl.to(elements.cards, { 
                     opacity: 1, 
                     y: 0, 
@@ -640,22 +627,12 @@
                     stagger: 0.15, 
                     ease: "power3.out" 
                 })
-                .to(elements.youBar, { 
-                    height: `${youTargetHeight}%`, 
-                    duration: 1.5, 
-                    ease: "elastic.out(1, 0.7)" 
-                }, "-=0.8")
-                .to(elements.impulsesBar, { 
-                    height: `${impulsesTargetHeight}%`, 
-                    duration: 1.5, 
-                    ease: "elastic.out(1, 0.7)" 
-                }, "<") // "<" starts this animation at the same time as the previous one
                 .fromTo('.day-circle', { scale: 0 }, {
                     scale: 1,
                     duration: 0.6,
                     stagger: 0.03,
                     ease: "back.out(1.7)"
-                }, "-=1.2"); // Overlap for a more fluid feel
+                }, "-=0.8");
                 
                 elements.resetButton.addEventListener('click', handleReset);
             };
