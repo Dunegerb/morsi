@@ -59,9 +59,12 @@
             overflow: hidden;
         }
 
+        /* style.css */
+
         body {
             width: 100%;
-            height: 100%;
+            /* Mude esta linha */
+            min-height: 100dvh; /* Antes era height: 100% */
             margin: 0 auto;
             background-color: var(--bg-main);
             color: var(--text-primary);
@@ -105,8 +108,9 @@
             flex-shrink: 0;
             display: flex;
             justify-content: space-around;
-            align-items: flex-end;
-            padding: 3rem var(--h-safe-area) calc(1.5rem + var(--v-safe-area-bottom)) var(--h-safe-area);
+            align-items: center; /* Melhora o alinhamento vertical */
+            /* Padding equilibrado que respeita a safe area */
+            padding: 1rem var(--h-safe-area) calc(0.75rem + var(--v-safe-area-bottom)) var(--h-safe-area);
             background: var(--bg-main);
         }
 
