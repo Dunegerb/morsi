@@ -469,11 +469,12 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- ESTADO DO APLICATIVO (MODIFICADO) ---
-            // A única fonte da verdade agora é a data de início da contagem.
-            // O `dayCount` será sempre calculado a partir dela.
+            // --- CONSTANTES ---
+            const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+            // --- ESTADO DO APLICATIVO ---
             const STATE = {
-                streakStartDate: null, // NOVO: Armazena o timestamp do início da contagem
+                streakStartDate: null,
                 countdownFrameId: null
             };
             
@@ -498,35 +499,39 @@
 
             const saveState = () => localStorage.setItem('morsiProgress', JSON.stringify(STATE));
             
-            // --- FUNÇÃO DE CARREGAMENTO (MODIFICADA COM MIGRAÇÃO) ---
             const loadStateAndMigrate = () => {
                 const saved = localStorage.getItem('morsiProgress');
                 if (!saved) return;
 
                 const parsed = JSON.parse(saved);
 
-                // ** LÓGICA DE MIGRAÇÃO ÚNICA **
-                // Se o usuário tem a versão antiga do estado, convertemos para a nova.
-                if (!parsed.streakStartDate && (parsed.resetTimestamp || parsed.dayCount > 0)) {
-                    console.log("MIGRATING OLD USER DATA...");
+                // ** LÓGICA DE MIGRAÇÃO ÚNICA (VERSÃO 2 - CORRIGIDA) **
+                if (!parsed.streakStartDate && (parsed.resetTimestamp || typeof parsed.dayCount === 'number')) {
+                    console.log("MIGRATING OLD USER DATA (v2)...");
+                    let migrated = false;
+
                     if (parsed.resetTimestamp) {
-                        // Caso 1: Usuário está no dia 0 com contagem regressiva ativa.
-                        // A data de início é o timestamp do reset.
+                        // Caso 1: Usuário no dia 0 com contagem regressiva. A data de início é o reset.
                         STATE.streakStartDate = parsed.resetTimestamp;
+                        migrated = true;
                     } else if (parsed.dayCount > 0) {
-                        // Caso 2: Usuário está preso em '1 dia' (ou mais, se tivessem editado).
-                        // Reconstruímos uma data de início aproximada.
-                        const daysInMillis = parsed.dayCount * 24 * 60 * 60 * 1000;
-                        STATE.streakStartDate = Date.now() - daysInMillis;
+                        // Caso 2: Usuário travado em N dias.
+                        // Reconstruímos uma data de início que resulte no mesmo número de dias com a nova fórmula.
+                        // Se ele via "5 dias", queremos que a nova fórmula (dias_completos + 1) também dê 5.
+                        // Portanto, precisamos simular (5 - 1) = 4 dias completos.
+                        const daysToSubtract = Math.max(0, parsed.dayCount - 1);
+                        const millisToSubtract = daysToSubtract * DAY_IN_MS;
+                        STATE.streakStartDate = Date.now() - millisToSubtract;
+                        migrated = true;
                     }
-                    saveState(); // Salva o novo formato para não migrar de novo.
+                    
+                    if(migrated) saveState();
                 } else {
-                    // O usuário já tem o novo formato.
                     Object.assign(STATE, parsed);
                 }
             };
             
-            // --- NOVA FUNÇÃO PARA CALCULAR O ESTADO ATUAL ---
+            // --- FUNÇÃO DE CÁLCULO (VERSÃO 2 - CORRIGIDA) ---
             const calculateCurrentState = () => {
                 if (!STATE.streakStartDate) {
                     return { day: 0, timeUntilNextDay: 0, isActive: false };
@@ -534,11 +539,16 @@
 
                 const now = Date.now();
                 const elapsedMs = now - STATE.streakStartDate;
-                const day = Math.floor(elapsedMs / (1000 * 60 * 60 * 24));
                 
-                // Calcula o tempo restante até completar o próximo dia de 24h
-                const timeIntoCurrentDayMs = elapsedMs % (1000 * 60 * 60 * 24);
-                const timeUntilNextDay = (1000 * 60 * 60 * 24) - timeIntoCurrentDayMs;
+                // Calcula dias completos (ex: 48h = 2 dias completos)
+                const completedDays = Math.floor(elapsedMs / DAY_IN_MS);
+                
+                // ** A CORREÇÃO PRINCIPAL ESTÁ AQUI **
+                // O dia atual é o número de dias completos + 1 (ex: 2 dias completos = você está no Dia 3)
+                const day = completedDays + 1;
+                
+                const timeIntoCurrentDayMs = elapsedMs % DAY_IN_MS;
+                const timeUntilNextDay = DAY_IN_MS - timeIntoCurrentDayMs;
 
                 return { day, timeUntilNextDay, isActive: true };
             };
@@ -551,12 +561,13 @@
                 return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             };
             
-            // --- FUNÇÃO DE CONTAGEM REGRESSIVA (SIMPLIFICADA) ---
             const startCountdown = () => {
                 if (STATE.countdownFrameId) cancelAnimationFrame(STATE.countdownFrameId);
                 
                 const { day, isActive } = calculateCurrentState();
-                if (!isActive || day > 0) {
+                
+                // A contagem regressiva só aparece no PRIMEIRO dia (quando 0 dias completos passaram)
+                if (!isActive || day > 1) {
                     gsap.to(elements.countdownTimer, { autoAlpha: 0, duration: 0.5 });
                     return;
                 }
@@ -564,13 +575,13 @@
                 gsap.to(elements.countdownTimer, { autoAlpha: 1, duration: 0.5 });
                 
                 const tick = () => {
-                    const { day, timeUntilNextDay } = calculateCurrentState();
-                    if (day >= 1) {
+                    const currentState = calculateCurrentState();
+                    if (currentState.day > 1) {
                         elements.countdownTimer.textContent = formatTime(0);
-                        updateAll(true); // Atualiza a UI para mostrar "1 dia"
+                        updateAll(true);
                         gsap.to(elements.countdownTimer, { autoAlpha: 0, duration: 0.5 });
                     } else {
-                        elements.countdownTimer.textContent = formatTime(timeUntilNextDay);
+                        elements.countdownTimer.textContent = formatTime(currentState.timeUntilNextDay);
                         STATE.countdownFrameId = requestAnimationFrame(tick);
                     }
                 };
@@ -578,7 +589,6 @@
             };
 
             const populateStaticContent = () => {
-                // Preenche o indicador com 7 linhas uma única vez para evitar recriação
                 if(elements.stageIndicator.children.length === 0) {
                     for(let i = 0; i < 7; i++) {
                         elements.stageIndicator.appendChild(document.createElement('div')).className = 'indicator-line';
@@ -586,17 +596,17 @@
                 }
             };
             
-            // --- FUNÇÃO DE ATUALIZAÇÃO (MODIFICADA) ---
             const updateAll = (animate = true) => {
-                const { day } = calculateCurrentState();
+                // Se não há data de início, o dia é 0. Senão, calcula.
+                const day = STATE.streakStartDate ? calculateCurrentState().day : 0;
                 
-                // === CALCULATIONS ===
                 let activeStageIndex = ALL_STAGES.findIndex(s => day >= s.range[0] && day <= s.range[1]);
                 if (activeStageIndex === -1) activeStageIndex = day > 0 ? ALL_STAGES.length - 1 : 0;
                 
                 const youHeight = Math.min(100, 10 + (day / 30) * 90);
                 const impulsesHeight = Math.max(15, 85 - (day / 14) * 70);
 
+                // ... (o resto da função `updateAll` permanece idêntico) ...
                 const youIconAlpha = youHeight > 25 ? 1 : 0;
                 const youIconScale = youIconAlpha ? 1 : 0.5;
                 const impulsesIconAlpha = impulsesHeight > 25 ? 1 : 0;
@@ -605,19 +615,14 @@
                 const tl = gsap.timeline();
                 const duration = animate ? 1.5 : 0;
                 
-                // 1. Atualizar Contador (não mexe mais no estado, apenas exibe)
                 tl.to(elements.dayCount, { textContent: day, duration: animate ? 1.2 : 0, roundProps: "textContent", ease: "power2.inOut" });
-
-                // 2. Update Chart and Icons
                 tl.to(elements.youBar, { height: `${youHeight}%`, duration, ease: "elastic.out(1, 0.7)" }, 0);
                 tl.to(elements.youBarIcon, { autoAlpha: youIconAlpha, scale: youIconScale, duration: animate ? 0.6 : 0, ease: "back.out(2)" }, 0.1);
                 tl.to(elements.impulsesBar, { height: `${impulsesHeight}%`, duration, ease: "elastic.out(1, 0.7)" }, 0);
                 tl.to(elements.impulsesBarIcon, { autoAlpha: impulsesIconAlpha, scale: impulsesIconScale, duration: animate ? 0.6 : 0, ease: "back.out(2)" }, 0.1);
 
-                // 3. Update Stage
                 elements.stagePeriod.textContent = ALL_STAGES[activeStageIndex].period;
                 
-                // Gerencia a lista de estágios dinamicamente
                 elements.stageList.innerHTML = '';
                 const stageWindow = 5;
                 const start = Math.max(0, activeStageIndex - 2);
@@ -642,7 +647,6 @@
                     line.classList.toggle('active', index === Math.min(3, activeStageIndex));
                 });
 
-                // 4. Update Calendar
                 elements.calendarGrid.innerHTML = '';
                 const totalCircles = 20;
                 const fragment = document.createDocumentFragment();
@@ -663,9 +667,7 @@
                 }
             };
             
-            // --- FUNÇÃO DE RESET (MODIFICADA) ---
             const handleReset = () => {
-                // A única coisa a fazer é definir a data de início da contagem.
                 STATE.streakStartDate = Date.now();
                 saveState();
                 updateAll(true);
@@ -673,11 +675,11 @@
             };
 
             const init = () => {
-                loadStateAndMigrate(); // Carrega o estado e migra se necessário
+                loadStateAndMigrate();
                 populateStaticContent();
                 
-                updateAll(false); // Primeira renderização sem animações
-                startCountdown(); // Inicia a contagem regressiva se estiver no dia 0
+                updateAll(false);
+                startCountdown();
                 
                 const tl = gsap.timeline({ delay: 0.3 });
                 tl.to(elements.cards, { opacity: 1, y: 0, duration: 1, stagger: 0.15, ease: "power3.out" })
