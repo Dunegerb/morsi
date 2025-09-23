@@ -469,9 +469,11 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- ESTADO DO APLICATIVO (MODIFICADO) ---
+            // A única fonte da verdade agora é a data de início da contagem.
+            // O `dayCount` será sempre calculado a partir dela.
             const STATE = {
-                dayCount: 0,
-                resetTimestamp: null,
+                streakStartDate: null, // NOVO: Armazena o timestamp do início da contagem
                 countdownFrameId: null
             };
             
@@ -495,12 +497,50 @@
             };
 
             const saveState = () => localStorage.setItem('morsiProgress', JSON.stringify(STATE));
-            const loadState = () => {
+            
+            // --- FUNÇÃO DE CARREGAMENTO (MODIFICADA COM MIGRAÇÃO) ---
+            const loadStateAndMigrate = () => {
                 const saved = localStorage.getItem('morsiProgress');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
+                if (!saved) return;
+
+                const parsed = JSON.parse(saved);
+
+                // ** LÓGICA DE MIGRAÇÃO ÚNICA **
+                // Se o usuário tem a versão antiga do estado, convertemos para a nova.
+                if (!parsed.streakStartDate && (parsed.resetTimestamp || parsed.dayCount > 0)) {
+                    console.log("MIGRATING OLD USER DATA...");
+                    if (parsed.resetTimestamp) {
+                        // Caso 1: Usuário está no dia 0 com contagem regressiva ativa.
+                        // A data de início é o timestamp do reset.
+                        STATE.streakStartDate = parsed.resetTimestamp;
+                    } else if (parsed.dayCount > 0) {
+                        // Caso 2: Usuário está preso em '1 dia' (ou mais, se tivessem editado).
+                        // Reconstruímos uma data de início aproximada.
+                        const daysInMillis = parsed.dayCount * 24 * 60 * 60 * 1000;
+                        STATE.streakStartDate = Date.now() - daysInMillis;
+                    }
+                    saveState(); // Salva o novo formato para não migrar de novo.
+                } else {
+                    // O usuário já tem o novo formato.
                     Object.assign(STATE, parsed);
                 }
+            };
+            
+            // --- NOVA FUNÇÃO PARA CALCULAR O ESTADO ATUAL ---
+            const calculateCurrentState = () => {
+                if (!STATE.streakStartDate) {
+                    return { day: 0, timeUntilNextDay: 0, isActive: false };
+                }
+
+                const now = Date.now();
+                const elapsedMs = now - STATE.streakStartDate;
+                const day = Math.floor(elapsedMs / (1000 * 60 * 60 * 24));
+                
+                // Calcula o tempo restante até completar o próximo dia de 24h
+                const timeIntoCurrentDayMs = elapsedMs % (1000 * 60 * 60 * 24);
+                const timeUntilNextDay = (1000 * 60 * 60 * 24) - timeIntoCurrentDayMs;
+
+                return { day, timeUntilNextDay, isActive: true };
             };
 
             const formatTime = (ms) => {
@@ -511,21 +551,26 @@
                 return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             };
             
+            // --- FUNÇÃO DE CONTAGEM REGRESSIVA (SIMPLIFICADA) ---
             const startCountdown = () => {
                 if (STATE.countdownFrameId) cancelAnimationFrame(STATE.countdownFrameId);
+                
+                const { day, isActive } = calculateCurrentState();
+                if (!isActive || day > 0) {
+                    gsap.to(elements.countdownTimer, { autoAlpha: 0, duration: 0.5 });
+                    return;
+                }
 
+                gsap.to(elements.countdownTimer, { autoAlpha: 1, duration: 0.5 });
+                
                 const tick = () => {
-                    const elapsed = Date.now() - STATE.resetTimestamp;
-                    const remaining = (24 * 60 * 60 * 1000) - elapsed;
-
-                    if (remaining <= 0) {
+                    const { day, timeUntilNextDay } = calculateCurrentState();
+                    if (day >= 1) {
                         elements.countdownTimer.textContent = formatTime(0);
-                        STATE.dayCount = 1;
-                        STATE.resetTimestamp = null;
-                        saveState();
-                        updateAll(true);
+                        updateAll(true); // Atualiza a UI para mostrar "1 dia"
+                        gsap.to(elements.countdownTimer, { autoAlpha: 0, duration: 0.5 });
                     } else {
-                        elements.countdownTimer.textContent = formatTime(remaining);
+                        elements.countdownTimer.textContent = formatTime(timeUntilNextDay);
                         STATE.countdownFrameId = requestAnimationFrame(tick);
                     }
                 };
@@ -533,13 +578,17 @@
             };
 
             const populateStaticContent = () => {
-                for(let i = 0; i < 7; i++) {
-                    elements.stageIndicator.appendChild(document.createElement('div')).className = 'indicator-line';
+                // Preenche o indicador com 7 linhas uma única vez para evitar recriação
+                if(elements.stageIndicator.children.length === 0) {
+                    for(let i = 0; i < 7; i++) {
+                        elements.stageIndicator.appendChild(document.createElement('div')).className = 'indicator-line';
+                    }
                 }
             };
             
+            // --- FUNÇÃO DE ATUALIZAÇÃO (MODIFICADA) ---
             const updateAll = (animate = true) => {
-                const day = STATE.dayCount;
+                const { day } = calculateCurrentState();
                 
                 // === CALCULATIONS ===
                 let activeStageIndex = ALL_STAGES.findIndex(s => day >= s.range[0] && day <= s.range[1]);
@@ -556,50 +605,44 @@
                 const tl = gsap.timeline();
                 const duration = animate ? 1.5 : 0;
                 
-                // 1. Handle Countdown Timer Visibility
-                if (day === 0 && STATE.resetTimestamp) {
-                    gsap.to(elements.countdownTimer, { autoAlpha: 1, duration: 0.5 });
-                } else {
-                    gsap.to(elements.countdownTimer, { autoAlpha: 0, duration: 0.5 });
-                    if (STATE.countdownFrameId) cancelAnimationFrame(STATE.countdownFrameId);
-                }
-
-                // 2. Update Counter
+                // 1. Atualizar Contador (não mexe mais no estado, apenas exibe)
                 tl.to(elements.dayCount, { textContent: day, duration: animate ? 1.2 : 0, roundProps: "textContent", ease: "power2.inOut" });
 
-                // 3. Update Chart and Icons
+                // 2. Update Chart and Icons
                 tl.to(elements.youBar, { height: `${youHeight}%`, duration, ease: "elastic.out(1, 0.7)" }, 0);
                 tl.to(elements.youBarIcon, { autoAlpha: youIconAlpha, scale: youIconScale, duration: animate ? 0.6 : 0, ease: "back.out(2)" }, 0.1);
                 tl.to(elements.impulsesBar, { height: `${impulsesHeight}%`, duration, ease: "elastic.out(1, 0.7)" }, 0);
                 tl.to(elements.impulsesBarIcon, { autoAlpha: impulsesIconAlpha, scale: impulsesIconScale, duration: animate ? 0.6 : 0, ease: "back.out(2)" }, 0.1);
 
-                // 4. Update Stage
+                // 3. Update Stage
                 elements.stagePeriod.textContent = ALL_STAGES[activeStageIndex].period;
                 
-                (() => {
-                    elements.stageList.innerHTML = '';
-                    const stageWindow = 5;
-                    const start = Math.max(0, activeStageIndex - 2);
-                    const end = Math.min(ALL_STAGES.length, start + stageWindow);
+                // Gerencia a lista de estágios dinamicamente
+                elements.stageList.innerHTML = '';
+                const stageWindow = 5;
+                const start = Math.max(0, activeStageIndex - 2);
+                const end = Math.min(ALL_STAGES.length, start + stageWindow);
 
-                    for (let i = start; i < end; i++) {
-                        const item = document.createElement('div');
-                        item.className = `stage-item ${i === activeStageIndex ? 'active' : ''}`;
-                        item.innerHTML = `<span>${ALL_STAGES[i].name}</span>`;
-                        elements.stageList.appendChild(item);
-                    }
-                    if (elements.stageList.firstElementChild) {
-                        const stageItemHeight = elements.stageList.firstElementChild.offsetHeight;
-                        const listContainerHeight = elements.stageList.parentElement.offsetHeight;
-                        const activeItemVisualIndex = Math.min(2, activeStageIndex);
-                        const offset = (listContainerHeight / 2) - (stageItemHeight / 2);
-                        const targetY = -(activeItemVisualIndex * stageItemHeight) + offset;
-                        gsap.to(elements.stageList, { y: targetY, duration: animate ? 1.2 : 0, ease: "power3.inOut" });
-                    }
-                })();
-                elements.stageIndicator.querySelectorAll('.indicator-line').forEach((line, index) => line.classList.toggle('active', index === 3));
+                for (let i = start; i < end; i++) {
+                    const item = document.createElement('div');
+                    item.className = `stage-item ${i === activeStageIndex ? 'active' : ''}`;
+                    item.innerHTML = `<span>${ALL_STAGES[i].name}</span>`;
+                    elements.stageList.appendChild(item);
+                }
+                if (elements.stageList.firstElementChild) {
+                    const stageItemHeight = elements.stageList.firstElementChild.offsetHeight;
+                    const listContainerHeight = elements.stageList.parentElement.offsetHeight;
+                    const activeItemVisualIndex = Math.min(2, activeStageIndex);
+                    const offset = (listContainerHeight / 2) - (stageItemHeight / 2);
+                    const targetY = -(activeItemVisualIndex * stageItemHeight) + offset;
+                    gsap.to(elements.stageList, { y: targetY, duration: animate ? 1.2 : 0, ease: "power3.inOut" });
+                }
+                
+                elements.stageIndicator.querySelectorAll('.indicator-line').forEach((line, index) => {
+                    line.classList.toggle('active', index === Math.min(3, activeStageIndex));
+                });
 
-                // 5. Update Calendar
+                // 4. Update Calendar
                 elements.calendarGrid.innerHTML = '';
                 const totalCircles = 20;
                 const fragment = document.createDocumentFragment();
@@ -620,22 +663,21 @@
                 }
             };
             
+            // --- FUNÇÃO DE RESET (MODIFICADA) ---
             const handleReset = () => {
-                STATE.dayCount = 0;
-                STATE.resetTimestamp = Date.now();
+                // A única coisa a fazer é definir a data de início da contagem.
+                STATE.streakStartDate = Date.now();
                 saveState();
                 updateAll(true);
                 startCountdown();
             };
 
             const init = () => {
-                loadState();
+                loadStateAndMigrate(); // Carrega o estado e migra se necessário
                 populateStaticContent();
                 
-                updateAll(false);
-                if (STATE.dayCount === 0 && STATE.resetTimestamp) {
-                    startCountdown();
-                }
+                updateAll(false); // Primeira renderização sem animações
+                startCountdown(); // Inicia a contagem regressiva se estiver no dia 0
                 
                 const tl = gsap.timeline({ delay: 0.3 });
                 tl.to(elements.cards, { opacity: 1, y: 0, duration: 1, stagger: 0.15, ease: "power3.out" })
