@@ -469,12 +469,9 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- CONSTANTES ---
-            const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-            // --- ESTADO DO APLICATIVO ---
             const STATE = {
-                streakStartDate: null,
+                dayCount: 0,
+                resetTimestamp: null,
                 countdownFrameId: null
             };
             
@@ -498,59 +495,23 @@
             };
 
             const saveState = () => localStorage.setItem('morsiProgress', JSON.stringify(STATE));
-            
-            const loadStateAndMigrate = () => {
+            const loadState = () => {
                 const saved = localStorage.getItem('morsiProgress');
-                if (!saved) return;
-
-                const parsed = JSON.parse(saved);
-
-                // ** LÓGICA DE MIGRAÇÃO ÚNICA (VERSÃO 2 - CORRIGIDA) **
-                if (!parsed.streakStartDate && (parsed.resetTimestamp || typeof parsed.dayCount === 'number')) {
-                    console.log("MIGRATING OLD USER DATA (v2)...");
-                    let migrated = false;
-
-                    if (parsed.resetTimestamp) {
-                        // Caso 1: Usuário no dia 0 com contagem regressiva. A data de início é o reset.
-                        STATE.streakStartDate = parsed.resetTimestamp;
-                        migrated = true;
-                    } else if (parsed.dayCount > 0) {
-                        // Caso 2: Usuário travado em N dias.
-                        // Reconstruímos uma data de início que resulte no mesmo número de dias com a nova fórmula.
-                        // Se ele via "5 dias", queremos que a nova fórmula (dias_completos + 1) também dê 5.
-                        // Portanto, precisamos simular (5 - 1) = 4 dias completos.
-                        const daysToSubtract = Math.max(0, parsed.dayCount - 1);
-                        const millisToSubtract = daysToSubtract * DAY_IN_MS;
-                        STATE.streakStartDate = Date.now() - millisToSubtract;
-                        migrated = true;
-                    }
-                    
-                    if(migrated) saveState();
-                } else {
+                if (saved) {
+                    const parsed = JSON.parse(saved);
                     Object.assign(STATE, parsed);
                 }
             };
-            
-            // --- FUNÇÃO DE CÁLCULO (VERSÃO 2 - CORRIGIDA) ---
-            const calculateCurrentState = () => {
-                if (!STATE.streakStartDate) {
-                    return { day: 0, timeUntilNextDay: 0, isActive: false };
+
+            // NOVO: Função central para calcular os dias com base no timestamp
+            const calculateAndUpdateDays = () => {
+                if (!STATE.resetTimestamp) {
+                    STATE.dayCount = 0;
+                    return;
                 }
-
-                const now = Date.now();
-                const elapsedMs = now - STATE.streakStartDate;
-                
-                // Calcula dias completos (ex: 48h = 2 dias completos)
-                const completedDays = Math.floor(elapsedMs / DAY_IN_MS);
-                
-                // ** A CORREÇÃO PRINCIPAL ESTÁ AQUI **
-                // O dia atual é o número de dias completos + 1 (ex: 2 dias completos = você está no Dia 3)
-                const day = completedDays + 1;
-                
-                const timeIntoCurrentDayMs = elapsedMs % DAY_IN_MS;
-                const timeUntilNextDay = DAY_IN_MS - timeIntoCurrentDayMs;
-
-                return { day, timeUntilNextDay, isActive: true };
+                const elapsedMilliseconds = Date.now() - STATE.resetTimestamp;
+                const elapsedDays = Math.floor(elapsedMilliseconds / (1000 * 60 * 60 * 24));
+                STATE.dayCount = elapsedDays;
             };
 
             const formatTime = (ms) => {
@@ -561,27 +522,24 @@
                 return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             };
             
+            // ALTERADO: A função de contagem regressiva agora é mais simples
             const startCountdown = () => {
                 if (STATE.countdownFrameId) cancelAnimationFrame(STATE.countdownFrameId);
-                
-                const { day, isActive } = calculateCurrentState();
-                
-                // A contagem regressiva só aparece no PRIMEIRO dia (quando 0 dias completos passaram)
-                if (!isActive || day > 1) {
-                    gsap.to(elements.countdownTimer, { autoAlpha: 0, duration: 0.5 });
-                    return;
-                }
+                if (!STATE.resetTimestamp || STATE.dayCount > 0) return; // Só roda no dia 0
 
-                gsap.to(elements.countdownTimer, { autoAlpha: 1, duration: 0.5 });
-                
                 const tick = () => {
-                    const currentState = calculateCurrentState();
-                    if (currentState.day > 1) {
-                        elements.countdownTimer.textContent = formatTime(0);
+                    const elapsed = Date.now() - STATE.resetTimestamp;
+                    const remaining = (24 * 60 * 60 * 1000) - elapsed;
+
+                    if (remaining <= 0) {
+                        // Quando o timer acaba, simplesmente recalculamos tudo.
+                        // Não definimos mais dayCount = 1. A lógica de cálculo fará isso.
+                        // E o mais importante: NÃO removemos o resetTimestamp.
+                        calculateAndUpdateDays();
+                        saveState();
                         updateAll(true);
-                        gsap.to(elements.countdownTimer, { autoAlpha: 0, duration: 0.5 });
                     } else {
-                        elements.countdownTimer.textContent = formatTime(currentState.timeUntilNextDay);
+                        elements.countdownTimer.textContent = formatTime(remaining);
                         STATE.countdownFrameId = requestAnimationFrame(tick);
                     }
                 };
@@ -589,24 +547,22 @@
             };
 
             const populateStaticContent = () => {
-                if(elements.stageIndicator.children.length === 0) {
-                    for(let i = 0; i < 7; i++) {
-                        elements.stageIndicator.appendChild(document.createElement('div')).className = 'indicator-line';
-                    }
+                for(let i = 0; i < 7; i++) {
+                    elements.stageIndicator.appendChild(document.createElement('div')).className = 'indicator-line';
                 }
             };
             
+            // ALTERADO: A lógica de visibilidade do timer foi movida para cá
             const updateAll = (animate = true) => {
-                // Se não há data de início, o dia é 0. Senão, calcula.
-                const day = STATE.streakStartDate ? calculateCurrentState().day : 0;
+                const day = STATE.dayCount;
                 
+                // === CALCULATIONS ===
                 let activeStageIndex = ALL_STAGES.findIndex(s => day >= s.range[0] && day <= s.range[1]);
                 if (activeStageIndex === -1) activeStageIndex = day > 0 ? ALL_STAGES.length - 1 : 0;
                 
                 const youHeight = Math.min(100, 10 + (day / 30) * 90);
                 const impulsesHeight = Math.max(15, 85 - (day / 14) * 70);
 
-                // ... (o resto da função `updateAll` permanece idêntico) ...
                 const youIconAlpha = youHeight > 25 ? 1 : 0;
                 const youIconScale = youIconAlpha ? 1 : 0.5;
                 const impulsesIconAlpha = impulsesHeight > 25 ? 1 : 0;
@@ -615,38 +571,51 @@
                 const tl = gsap.timeline();
                 const duration = animate ? 1.5 : 0;
                 
+                // 1. Handle Countdown Timer Visibility
+                if (day === 0 && STATE.resetTimestamp) {
+                    gsap.to(elements.countdownTimer, { autoAlpha: 1, duration: 0.5 });
+                    startCountdown(); // Inicia ou continua a contagem regressiva
+                } else {
+                    gsap.to(elements.countdownTimer, { autoAlpha: 0, duration: 0.5 });
+                    if (STATE.countdownFrameId) cancelAnimationFrame(STATE.countdownFrameId);
+                }
+
+                // 2. Update Counter
                 tl.to(elements.dayCount, { textContent: day, duration: animate ? 1.2 : 0, roundProps: "textContent", ease: "power2.inOut" });
+
+                // 3. Update Chart and Icons
                 tl.to(elements.youBar, { height: `${youHeight}%`, duration, ease: "elastic.out(1, 0.7)" }, 0);
                 tl.to(elements.youBarIcon, { autoAlpha: youIconAlpha, scale: youIconScale, duration: animate ? 0.6 : 0, ease: "back.out(2)" }, 0.1);
                 tl.to(elements.impulsesBar, { height: `${impulsesHeight}%`, duration, ease: "elastic.out(1, 0.7)" }, 0);
                 tl.to(elements.impulsesBarIcon, { autoAlpha: impulsesIconAlpha, scale: impulsesIconScale, duration: animate ? 0.6 : 0, ease: "back.out(2)" }, 0.1);
 
+                // 4. Update Stage
                 elements.stagePeriod.textContent = ALL_STAGES[activeStageIndex].period;
                 
-                elements.stageList.innerHTML = '';
-                const stageWindow = 5;
-                const start = Math.max(0, activeStageIndex - 2);
-                const end = Math.min(ALL_STAGES.length, start + stageWindow);
+                (() => {
+                    elements.stageList.innerHTML = '';
+                    const stageWindow = 5;
+                    const start = Math.max(0, activeStageIndex - 2);
+                    const end = Math.min(ALL_STAGES.length, start + stageWindow);
 
-                for (let i = start; i < end; i++) {
-                    const item = document.createElement('div');
-                    item.className = `stage-item ${i === activeStageIndex ? 'active' : ''}`;
-                    item.innerHTML = `<span>${ALL_STAGES[i].name}</span>`;
-                    elements.stageList.appendChild(item);
-                }
-                if (elements.stageList.firstElementChild) {
-                    const stageItemHeight = elements.stageList.firstElementChild.offsetHeight;
-                    const listContainerHeight = elements.stageList.parentElement.offsetHeight;
-                    const activeItemVisualIndex = Math.min(2, activeStageIndex);
-                    const offset = (listContainerHeight / 2) - (stageItemHeight / 2);
-                    const targetY = -(activeItemVisualIndex * stageItemHeight) + offset;
-                    gsap.to(elements.stageList, { y: targetY, duration: animate ? 1.2 : 0, ease: "power3.inOut" });
-                }
-                
-                elements.stageIndicator.querySelectorAll('.indicator-line').forEach((line, index) => {
-                    line.classList.toggle('active', index === Math.min(3, activeStageIndex));
-                });
+                    for (let i = start; i < end; i++) {
+                        const item = document.createElement('div');
+                        item.className = `stage-item ${i === activeStageIndex ? 'active' : ''}`;
+                        item.innerHTML = `<span>${ALL_STAGES[i].name}</span>`;
+                        elements.stageList.appendChild(item);
+                    }
+                    if (elements.stageList.firstElementChild) {
+                        const stageItemHeight = elements.stageList.firstElementChild.offsetHeight;
+                        const listContainerHeight = elements.stageList.parentElement.offsetHeight;
+                        const activeItemVisualIndex = Math.min(2, activeStageIndex);
+                        const offset = (listContainerHeight / 2) - (stageItemHeight / 2);
+                        const targetY = -(activeItemVisualIndex * stageItemHeight) + offset;
+                        gsap.to(elements.stageList, { y: targetY, duration: animate ? 1.2 : 0, ease: "power3.inOut" });
+                    }
+                })();
+                elements.stageIndicator.querySelectorAll('.indicator-line').forEach((line, index) => line.classList.toggle('active', index === 3));
 
+                // 5. Update Calendar
                 elements.calendarGrid.innerHTML = '';
                 const totalCircles = 20;
                 const fragment = document.createDocumentFragment();
@@ -668,19 +637,24 @@
             };
             
             const handleReset = () => {
-                STATE.streakStartDate = Date.now();
+                STATE.dayCount = 0;
+                STATE.resetTimestamp = Date.now();
                 saveState();
-                updateAll(true);
-                startCountdown();
+                updateAll(true); // O updateAll agora também chama o startCountdown
             };
 
+            // ALTERADO: O fluxo de inicialização agora é mais inteligente
             const init = () => {
-                loadStateAndMigrate();
+                loadState();
                 populateStaticContent();
                 
-                updateAll(false);
-                startCountdown();
+                // Primeiro, calculamos o estado correto dos dias
+                calculateAndUpdateDays();
                 
+                // Agora, atualizamos toda a UI com os dados corretos e sem animação inicial
+                updateAll(false);
+                
+                // Animação de entrada dos elementos
                 const tl = gsap.timeline({ delay: 0.3 });
                 tl.to(elements.cards, { opacity: 1, y: 0, duration: 1, stagger: 0.15, ease: "power3.out" })
                   .fromTo('.day-circle', { scale: 0 }, { scale: 1, duration: 0.6, stagger: 0.03, ease: "back.out(1.7)" }, "-=0.8");
