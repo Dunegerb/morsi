@@ -16,8 +16,7 @@
     <!-- Font Architecture -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
-    <link rel="illustration-container" href="media/imagebackground.jpg">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..00;1,400..700&display=swap" rel="stylesheet">
     
     <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -218,7 +217,8 @@
 
     <main class="login-container">
         <div class="illustration-container"> 
-            <img href="media/imagebackground.jpg" alt="Illustration of a person looking at their phone in a dark room">
+            <!-- CORRIGIDO: trocado 'href' por 'src' -->
+            <img src="media/imagebackground.jpg" alt="Illustration of a person looking at their phone in a dark room">
         </div>
 
         <div class="content-wrapper">
@@ -228,7 +228,7 @@
     
             <div id="auth-options" class="button-group">
                 <button id="apple-login-btn" class="btn btn-light">
-                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w.org/2000/svg"><path d="M17.47,15.86c-1.34-0.1-2.42,1.24-2.42,1.24s-1.31,2.33-3.08,2.33c-1.68,0-2.5-1.55-4.1-1.55c-1.64,0-2.88,1.48-3.96,1.48c-1.05,0-2.22-1.12-2.83-2.73c-1.28-3.32-0.5-7.73,1.86-10.24c1.13-1.2,2.5-1.89,4.02-1.93c1.58-0.04,3.04,1.06,4.02,1.06c0.98,0,2.86-1.31,4.64-1.19c0.41,0.03,2.02,0.21,3.2,1.88c-0.1,0.06-1.8,1.03-1.8,3.22c0,2.6,2.15,3.62,2.2,3.65c-0.09,0.22-0.44,1.39-1.54,2.83c-1,1.31-2.12,2.07-3.3,2.16C17.91,15.91,17.56,15.88,17.47,15.86z M13.73,4.42c0.86-1.04,1.48-2.52,1.31-4.02c-1.37,0.1-2.93,0.98-3.83,2.02c-0.82,0.94-1.58,2.48-1.41,3.94C11.21,6.48,12.79,5.54,13.73,4.42z"/></svg>
+                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17.47,15.86c-1.34-0.1-2.42,1.24-2.42,1.24s-1.31,2.33-3.08,2.33c-1.68,0-2.5-1.55-4.1-1.55c-1.64,0-2.88,1.48-3.96,1.48c-1.05,0-2.22-1.12-2.83-2.73c-1.28-3.32-0.5-7.73,1.86-10.24c1.13-1.2,2.5-1.89,4.02-1.93c1.58-0.04,3.04,1.06,4.02,1.06c0.98,0,2.86-1.31,4.64-1.19c0.41,0.03,2.02,0.21,3.2,1.88c-0.1,0.06-1.8,1.03-1.8,3.22c0,2.6,2.15,3.62,2.2,3.65c-0.09,0.22-0.44,1.39-1.54,2.83c-1,1.31-2.12,2.07-3.3,2.16C17.91,15.91,17.56,15.88,17.47,15.86z M13.73,4.42c0.86-1.04,1.48-2.52,1.31-4.02c-1.37,0.1-2.93,0.98-3.83,2.02c-0.82,0.94-1.58,2.48-1.41,3.94C11.21,6.48,12.79,5.54,13.73,4.42z"/></svg>
                     <span>Continue with Apple</span>
                 </button>
                 <button id="google-login-btn" class="btn btn-light">
