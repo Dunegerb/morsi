@@ -16,7 +16,7 @@
     <!-- Font Architecture -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..00;1,400..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
     
     <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -217,7 +217,6 @@
 
     <main class="login-container">
         <div class="illustration-container"> 
-            <!-- CORRIGIDO: trocado 'href' por 'src' -->
             <img src="media/imagebackground.jpg" alt="Illustration of a person looking at their phone in a dark room">
         </div>
 
@@ -258,7 +257,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- 1. SUPABASE INITIALIZATION ---
-            // (Assumindo que você tem o supabase-client.js ou as chaves aqui)
+            // Suas chaves reais estão aqui, parcialmente ocultas por segurança.
             const SUPABASE_URL = 'https://moxwfwcfjkzhhjhrjivi.supabase.co'; 
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1veHdmd2Nmamt6aGhqaHJqaXZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0OTc3NjksImV4cCI6MjA3NjA3Mzc2OX0.97l0wv7ie1BKOU9ad8rIbFoxMsZpp2Sad2kTHbrEzSI';
             const { createClient } = supabase;
@@ -272,81 +271,102 @@
                 emailChoiceBtn: document.getElementById('email-choice-btn'),
                 emailLoginBtn: document.getElementById('email-login-btn'),
                 feedbackMessage: document.getElementById('feedback-message')
-                // ... adicione outros botões se precisar controlá-los
             };
     
-            // --- 3. UI LOGIC (melhorando o texto) ---
+            // --- 3. UI LOGIC ---
             elements.emailChoiceBtn.querySelector('span').textContent = 'Sign in / Sign up with Email';
     
+            // --- 4. AUTHENTICATION & REDIRECTION LOGIC ---
+            let isRedirecting = false; // Flag para evitar redirecionamentos múltiplos
     
-            // --- 4. AUTHENTICATION LOGIC (A GRANDE MUDANÇA) ---
+            const handleUserSession = async (session) => {
+                // Se não houver sessão ou já estivermos redirecionando, não faz nada.
+                if (!session || isRedirecting) return;
     
-            // Ouve mudanças no estado de autenticação (login, logout)
-            _supabase.auth.onAuthStateChange(async (event, session) => {
-                if (event === 'SIGNED_IN' && session) {
-                    // O USUÁRIO ACABOU DE FAZER LOGIN!
-                    console.log('User signed in successfully!');
-                    
-                    // Agora verificamos se ele já completou o onboarding
-                    const { data: profile } = await _supabase
-                        .from('profiles')
-                        .select('id')
-                        .eq('id', session.user.id)
-                        .single();
+                isRedirecting = true; // Ativa a flag para garantir que esta lógica rode apenas uma vez.
+                console.log('Session found, checking profile...');
+                
+                // Mostra um feedback visual para o usuário
+                elements.feedbackMessage.textContent = 'Authenticating...';
+                
+                const { data: profile } = await _supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', session.user.id)
+                    .single();
     
-                    if (profile) {
-                        // Ele tem um perfil, então já fez o onboarding. Vá para o app principal.
-                        localStorage.setItem('morsiOnboardingComplete', 'true');
-                        window.location.href = 'index.html';
-                    } else {
-                        // Sem perfil, precisa fazer o onboarding.
-                        window.location.href = 'onboarding.html';
-                    }
+                if (profile) {
+                    console.log('Profile exists. Redirecting to index.html');
+                    localStorage.setItem('morsiOnboardingComplete', 'true');
+                    window.location.href = 'index.html';
+                } else {
+                    console.log('No profile. Redirecting to onboarding.html');
+                    window.location.href = 'onboarding.html';
+                }
+            };
+    
+            // --- 5. EVENT LISTENERS & HANDLERS ---
+    
+            // Ouve eventos de autenticação que acontecem DENTRO do app (OAuth)
+            _supabase.auth.onAuthStateChange((event, session) => {
+                console.log(`Auth event: ${event}`);
+                if (event === 'SIGNED_IN') {
+                    handleUserSession(session);
                 }
             });
     
-            // Handler para enviar o Magic Link
+            // Handler para o Magic Link (sem alterações)
             const handleEmailLogin = async () => {
                 const email = document.getElementById('email-input').value.trim();
                 if (!email) {
                     elements.feedbackMessage.textContent = 'Please enter your email address.';
                     return;
                 }
-    
                 elements.emailLoginBtn.disabled = true;
                 elements.feedbackMessage.textContent = 'Sending link...';
-    
                 const { error } = await _supabase.auth.signInWithOtp({
                     email: email,
                     options: {
-                        // MUITO IMPORTANTE: O redirecionamento do e-mail vai para a página de confirmação
                         emailRedirectTo: `${window.location.origin}/auth-confirm.html`,
                     }
                 });
-    
                 if (error) {
                     elements.feedbackMessage.textContent = `Error: ${error.message}`;
                     elements.emailLoginBtn.disabled = false;
                 } else {
                     elements.feedbackMessage.textContent = 'Check your inbox! Then come back here.';
-                    // Não desabilitamos o botão para sempre, caso o e-mail não chegue.
-                    setTimeout(() => {
-                       elements.emailLoginBtn.disabled = false;
-                    }, 30000); // Reativa o botão após 30 segundos
+                    setTimeout(() => { elements.emailLoginBtn.disabled = false; }, 30000);
                 }
             };
-            
-            // OAuth ainda funciona da mesma forma, pois onAuthStateChange vai capturá-lo
+    
+            // Handler para OAuth (sem alterações)
             const handleOAuthLogin = async (provider) => {
                 await _supabase.auth.signInWithOAuth({
                     provider: provider,
                     options: {
-                        redirectTo: `${window.location.origin}/onboarding.html` // OAuth pode ir direto pro onboarding
+                        redirectTo: `${window.location.origin}/onboarding.html`
                     }
                 });
             };
     
-            // --- 5. EVENT LISTENERS ---
+            // A CORREÇÃO: Ouve quando o usuário VOLTA para o app
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') { // Forma mais moderna e confiável
+                    console.log('App is visible again. Checking session...');
+                    _supabase.auth.getSession().then(({ data: { session } }) => {
+                        handleUserSession(session);
+                    });
+                }
+            });
+    
+            // --- 6. INICIALIZAÇÃO E VERIFICAÇÃO INICIAL ---
+    
+            const checkInitialSession = async () => {
+                const { data: { session } } = await _supabase.auth.getSession();
+                await handleUserSession(session);
+            };
+    
+            // Adiciona os listeners aos botões
             document.getElementById('google-login-btn').addEventListener('click', () => handleOAuthLogin('google'));
             document.getElementById('apple-login-btn').addEventListener('click', () => handleOAuthLogin('apple'));
             elements.emailChoiceBtn.addEventListener('click', () => {
@@ -359,11 +379,16 @@
             });
             elements.emailLoginBtn.addEventListener('click', handleEmailLogin);
     
-    
-            // --- 6. INICIALIZAÇÃO ---
-            // Apenas mostra a página. O listener onAuthStateChange cuida do resto.
-            elements.body.style.opacity = '1';
+            // Verifica a sessão assim que a página carrega, caso o usuário já esteja logado
+            checkInitialSession().then(() => {
+                // A página só se torna visível depois da verificação inicial.
+                // Se um redirecionamento for necessário, o usuário nem verá a página de login piscar.
+                if (!isRedirecting) {
+                    elements.body.style.opacity = '1';
+                }
+            });
         });
     </script>
+    
 </body>
 </html>
