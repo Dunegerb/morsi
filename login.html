@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA Full-Screen Immersion Directives -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#141414">
+    <link rel="icon" href="logo.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <title>MORSI - Welcome</title>
+
+    <!-- Font Architecture -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+    
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --bg-main: #141414;
+            --bg-card: #1F1F1F;
+            --text-primary: #F1EBEB;
+            --text-secondary: rgba(241, 235, 235, 0.7);
+            --text-tertiary: rgba(241, 235, 235, 0.5);
+            --accent-blue: #2A52AA;
+            --font-main: 'Instrument Sans', sans-serif;
+            --v-safe-area-top: env(safe-area-inset-top);
+            --v-safe-area-bottom: env(safe-area-inset-bottom);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            width: 100%;
+        }
+
+        .illustration-container {
+            width: 100%;
+            height: 50vh;
+            flex-shrink: 0;
+            position: relative;
+            -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+            mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+        }
+
+        .illustration-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
+        }
+
+        .content-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            padding-bottom: calc(1rem + var(--v-safe-area-bottom));
+        }
+
+        .logo {
+            margin-top: -2rem;
+            margin-bottom: 2rem;
+        }
+
+        .logo svg {
+            width: auto;
+            height: 1.6rem;
+        }
+
+        .button-group {
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 100px;
+            font-family: var(--font-main);
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+        }
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .btn:hover:not(:disabled) {
+            opacity: 0.9;
+        }
+
+        .btn.btn-light {
+            background-color: var(--text-primary);
+            color: var(--bg-main);
+        }
+
+        .btn.btn-dark {
+            background-color: transparent;
+            color: var(--text-primary);
+            box-shadow: inset 0 0 0 1px #333;
+        }
+        
+        .btn.btn-primary { /* For email submit */
+            background-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+
+        .btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        /* Email Form Styles */
+        #email-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .email-input {
+            width: 100%;
+            background-color: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1rem;
+            font-family: var(--font-main);
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            text-align: center;
+        }
+        .email-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(42, 82, 170, 0.5);
+        }
+        #email-back-btn {
+            font-size: 0.9rem;
+            color: var(--text-tertiary);
+            margin-top: 0.5rem;
+        }
+
+        /* Utility classes */
+        .hidden {
+            display: none !important;
+        }
+
+        #feedback-message {
+            margin-top: 1rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .login-footer {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .login-footer a {
+            color: var(--text-tertiary);
+            font-size: 0.8rem;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .login-footer a:hover {
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+
+    <main class="login-container">
+        <div class="illustration-container">
+            <img src="https://i.imgur.com/u7yT01j.jpeg" alt="Illustration of a person looking at their phone in a dark room">
+        </div>
+
+        <div class="content-wrapper">
+            <div class="logo">
+                 <svg xmlns="http://www.w3.org/2000/svg" width="93" height="26" viewBox="0 0 93 26" fill="none"><path d="M26.806 21V5.88H29.452L34.912 20.454H34.114L39.532 5.88H42.22V21H40.519V6.783H40.75L35.479 21H33.421L28.15 6.909H28.381V21H26.806ZM52.2843 21.21C51.2343 21.21 50.2683 21.021 49.3863 20.643C48.5183 20.251 47.7623 19.705 47.1182 19.005C46.4743 18.291 45.9703 17.458 45.6063 16.506C45.2563 15.554 45.0813 14.511 45.0813 13.377C45.0813 11.879 45.3893 10.549 46.0053 9.387C46.6213 8.225 47.4683 7.315 48.5463 6.657C49.6383 5.999 50.8773 5.67 52.2633 5.67C53.6773 5.67 54.9233 5.999 56.0013 6.657C57.0933 7.315 57.9473 8.225 58.5633 9.387C59.1793 10.549 59.4873 11.886 59.4873 13.398C59.4873 14.532 59.3053 15.575 58.9413 16.527C58.5913 17.479 58.0943 18.305 57.4503 19.005C56.8063 19.705 56.0433 20.251 55.1613 20.643C54.2793 21.021 53.3203 21.21 52.2843 21.21ZM52.2633 19.656C53.3413 19.656 54.2863 19.39 55.0983 18.858C55.9243 18.312 56.5683 17.563 57.0303 16.611C57.4923 15.659 57.7233 14.574 57.7233 13.356C57.7233 12.152 57.4923 11.088 57.0303 10.164C56.5823 9.24 55.9453 8.519 55.1192 8.001C54.3073 7.483 53.3553 7.224 52.2633 7.224C51.1713 7.224 50.2193 7.483 49.4073 8.001C48.5953 8.519 47.9653 9.24 47.5173 10.164C47.0693 11.074 46.8453 12.138 46.8453 13.356C46.8453 14.588 47.0693 15.68 47.5173 16.632C47.9793 17.57 48.6163 18.312 49.4282 18.858C50.2403 19.39 51.1853 19.656 52.2633 19.656ZM62.346 21V5.88H67.932C69.01 5.88 69.927 6.055 70.683 6.405C71.439 6.755 72.013 7.245 72.405 7.875C72.811 8.491 73.014 9.226 73.014 10.08C73.014 10.934 72.811 11.683 72.405 12.327C72.013 12.957 71.439 13.454 70.683 13.818C69.927 14.168 69.01 14.343 67.932 14.343H63.606V12.831H67.869C68.989 12.831 69.836 12.586 70.41 12.096C70.998 11.606 71.292 10.934 71.292 10.08C71.292 9.24 71.005 8.582 70.431 8.106C69.857 7.63 69.003 7.392 67.869 7.392H64.068V21H62.346ZM71.208 21L63.165 13.503H65.517L73.812 21H71.208ZM81.0257 21.189C79.2617 21.189 77.8547 20.755 76.8047 19.887C75.7687 19.019 75.1597 17.78 74.9777 16.17H76.6577C76.8117 17.332 77.2527 18.207 77.9807 18.795C78.7087 19.383 79.7167 19.677 81.0047 19.677C82.0967 19.677 82.9157 19.474 83.4617 19.068C84.0217 18.648 84.3017 18.039 84.3017 17.241C84.3017 16.555 84.1127 16.009 83.7347 15.603C83.3567 15.197 82.7687 14.861 81.9707 14.595L79.4297 13.713C78.1417 13.265 77.1897 12.726 76.5737 12.096C75.9577 11.452 75.6497 10.64 75.6497 9.66C75.6497 8.848 75.8527 8.148 76.2587 7.56C76.6647 6.958 77.2387 6.489 77.9807 6.153C78.7227 5.817 79.5837 5.649 80.5637 5.649C82.0757 5.649 83.2867 6.048 84.1967 6.846C85.1067 7.63 85.6317 8.75 85.7717 10.206H84.0917C83.9097 9.156 83.5317 8.386 82.9577 7.896C82.3977 7.406 81.5857 7.161 80.5217 7.161C79.5137 7.161 78.7297 7.364 78.1697 7.77C77.6097 8.176 77.3297 8.75 77.3297 9.492C77.3297 10.122 77.5257 10.626 77.9177 11.004C78.3097 11.382 78.9187 11.711 79.7447 11.991L82.4537 12.936C83.6297 13.342 84.5117 13.895 85.0997 14.595C85.6877 15.281 85.9817 16.156 85.9817 17.22C85.9817 18.48 85.5477 19.46 84.6797 20.16C83.8257 20.846 82.6077 21.189 81.0257 21.189ZM88.6781 21V5.88H90.4001V21H88.6781Z" fill="#E0D7D7"></path><path d="M6.38891 18.381C6.38892 20.8707 8.51542 23 8.51542 23C8.51542 23 10.4262 21.1328 10.6419 18.7741C10.8775 16.1985 10.6419 14.9414 12.1829 12.3534C13.3617 10.3736 16.2201 8.16034 16.2201 8.16034V4.03276C16.2201 4.03276 11.4311 6.78911 9.43998 9.66724C7.41627 12.5925 6.38891 14.75 6.38891 18.381Z" fill="#E0D7D7"></path><path d="M5.49515 19.9534C5.70512 20.7346 6.35808 21.8207 6.35808 21.8207C6.35808 21.8207 2.79178 20.1172 1.1805 17.1034C-0.693476 13.5983 0.225117 8.97931 0.225117 8.97931C0.225117 8.97931 2.93719 10.9776 3.98502 13.4017C5.0197 15.7954 5.0637 18.3483 5.49515 19.9534Z" fill="#E0D7D7"></path><path d="M11.5048 19.9534C11.2949 20.7346 10.6419 21.8207 10.6419 21.8207C10.6419 21.8207 14.2082 20.1172 15.8195 17.1034C17.6935 13.5983 16.7749 8.97931 16.7749 8.97931C16.7749 8.97931 14.0628 10.9776 13.015 13.4017C11.9803 15.7954 11.9363 18.3483 11.5048 19.9534Z" fill="#E0D7D7"></path><path d="M3.4303 10.4534C4.68053 11.8638 5.92663 14.6466 5.92663 14.6466C5.92663 14.6466 6.36205 13.2352 6.75874 12.3862C7.16736 11.5117 7.9915 10.2569 7.9915 10.2569C7.9915 10.2569 6.16528 7.91231 4.75551 6.68621C3.33168 5.44788 0.77987 4 0.77987 4V8.1931C0.77987 8.1931 2.52026 9.42684 3.4303 10.4534Z" fill="#E0D7D7"></path></svg>
+            </div>
+    
+            <div id="auth-options" class="button-group">
+                <button id="apple-login-btn" class="btn btn-light">
+                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w.org/2000/svg"><path d="M17.47,15.86c-1.34-0.1-2.42,1.24-2.42,1.24s-1.31,2.33-3.08,2.33c-1.68,0-2.5-1.55-4.1-1.55c-1.64,0-2.88,1.48-3.96,1.48c-1.05,0-2.22-1.12-2.83-2.73c-1.28-3.32-0.5-7.73,1.86-10.24c1.13-1.2,2.5-1.89,4.02-1.93c1.58-0.04,3.04,1.06,4.02,1.06c0.98,0,2.86-1.31,4.64-1.19c0.41,0.03,2.02,0.21,3.2,1.88c-0.1,0.06-1.8,1.03-1.8,3.22c0,2.6,2.15,3.62,2.2,3.65c-0.09,0.22-0.44,1.39-1.54,2.83c-1,1.31-2.12,2.07-3.3,2.16C17.91,15.91,17.56,15.88,17.47,15.86z M13.73,4.42c0.86-1.04,1.48-2.52,1.31-4.02c-1.37,0.1-2.93,0.98-3.83,2.02c-0.82,0.94-1.58,2.48-1.41,3.94C11.21,6.48,12.79,5.54,13.73,4.42z"/></svg>
+                    <span>Continue with Apple</span>
+                </button>
+                <button id="google-login-btn" class="btn btn-light">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M22.56,12.25c0,-0.78,-0.07,-1.53,-0.2,-2.25h-9.8v4.26h5.92c-0.26,1.37,-1.04,2.53,-2.21,3.31v2.77h3.57c2.08,-1.92,3.28,-4.74,3.28,-8.09z" fill="#4285F4"/><path d="M12.56,22c2.54,0,4.68,-0.84,6.24,-2.27l-3.57,-2.77c-0.84,0.57,-1.91,0.9,-3.24,0.9c-2.48,0,-4.58,-1.67,-5.33,-3.91h-3.67v2.84c1.74,3.45,5.15,5.78,9.33,5.78z" fill="#34A853"/><path d="M7.22,14.02c-0.14,-0.42,-0.22,-0.88,-0.22,-1.35s0.08,-0.93,0.22,-1.35v-2.84h-3.67c-0.7,1.4,-1.13,3.01,-1.13,4.72s0.43,3.32,1.13,4.72l3.67,-2.84z" fill="#FBBC05"/><path d="M12.56,6.23c1.37,0,2.6,0.48,3.58,1.4l3.16,-3.16c-1.89,-1.8,-4.38,-2.87,-7.32,-2.87c-4.18,0,-7.59,2.33,-9.33,5.78l3.67,2.84c0.75,-2.24,2.85,-3.91,5.33,-3.91z" fill="#EA4335"/></svg>
+                    <span>Continue with Google</span>
+                </button>
+                <button id="email-choice-btn" class="btn btn-dark">
+                    <span>Continue with email</span>
+                </button>
+            </div>
+            
+            <div id="email-form" class="button-group hidden">
+                <input type="email" id="email-input" class="email-input" placeholder="your@email.com" required>
+                <button id="email-login-btn" class="btn btn-primary">Send Magic Link</button>
+                <button id="email-back-btn" class="btn">Back</button>
+            </div>
+
+            <p id="feedback-message"></p>
+    
+            <footer class="login-footer">
+                <a href="#">Privacy policy</a>
+                <a href="#">Terms of service</a>
+            </footer>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 1. SUPABASE INITIALIZATION ---
+            const SUPABASE_URL = 'https://moxwfwcfjkzhhjhrjivi.supabase.co'; // <-- Replace this
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1veHdmd2Nmamt6aGhqaHJqaXZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0OTc3NjksImV4cCI6MjA3NjA3Mzc2OX0.97l0wv7ie1BKOU9ad8rIbFoxMsZpp2Sad2kTHbrEzSI'; // <-- Replace this
+
+            if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.includes('YOUR_SUPABASE_URL')) {
+                console.error("Supabase URL and Key are not set. Please update the script.");
+                alert("App is not configured. Please contact support.");
+                return;
+            }
+
+            const { createClient } = supabase;
+            const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            // --- 2. DOM ELEMENT REFERENCES ---
+            const elements = {
+                body: document.body,
+                authOptions: document.getElementById('auth-options'),
+                emailForm: document.getElementById('email-form'),
+                appleBtn: document.getElementById('apple-login-btn'),
+                googleBtn: document.getElementById('google-login-btn'),
+                emailChoiceBtn: document.getElementById('email-choice-btn'),
+                emailLoginBtn: document.getElementById('email-login-btn'),
+                emailBackBtn: document.getElementById('email-back-btn'),
+                emailInput: document.getElementById('email-input'),
+                feedbackMessage: document.getElementById('feedback-message')
+            };
+
+            const redirectTo = `${window.location.origin}/onboarding.html`;
+
+            // --- 3. SESSION CHECK ---
+            // Check if user is already logged in and redirect them.
+            const checkSession = async () => {
+                const { data: { session } } = await _supabase.auth.getSession();
+                if (session) {
+                    const onboardingComplete = localStorage.getItem('morsiOnboardingComplete');
+                    if (onboardingComplete === 'true') {
+                        window.location.href = 'index.html';
+                    } else {
+                        window.location.href = 'onboarding.html';
+                    }
+                } else {
+                    // If no session, fade in the login page
+                    elements.body.style.opacity = '1';
+                }
+            };
+            
+            // --- 4. UI LOGIC ---
+            const showEmailForm = () => {
+                elements.authOptions.classList.add('hidden');
+                elements.emailForm.classList.remove('hidden');
+                elements.feedbackMessage.textContent = '';
+                elements.emailInput.focus();
+            };
+
+            const showAuthOptions = () => {
+                elements.emailForm.classList.add('hidden');
+                elements.authOptions.classList.remove('hidden');
+                elements.feedbackMessage.textContent = '';
+            };
+
+            const setLoadingState = (isLoading) => {
+                const buttons = [elements.appleBtn, elements.googleBtn, elements.emailChoiceBtn, elements.emailLoginBtn];
+                buttons.forEach(btn => btn.disabled = isLoading);
+                elements.feedbackMessage.textContent = isLoading ? 'Processing...' : '';
+            };
+
+            // --- 5. AUTHENTICATION HANDLERS ---
+            
+            // OAuth Handler (Google & Apple)
+            const handleOAuthLogin = async (provider) => {
+                setLoadingState(true);
+                const { error } = await _supabase.auth.signInWithOAuth({
+                    provider,
+                    options: { redirectTo }
+                });
+                if (error) {
+                    elements.feedbackMessage.textContent = `Error: ${error.message}`;
+                    setLoadingState(false);
+                }
+            };
+            
+            // Magic Link Handler
+            const handleEmailLogin = async () => {
+                const email = elements.emailInput.value.trim();
+                if (!email) {
+                    elements.feedbackMessage.textContent = 'Please enter your email address.';
+                    return;
+                }
+                
+                setLoadingState(true);
+                const { error } = await _supabase.auth.signInWithOtp({
+                    email,
+                    options: { emailRedirectTo: redirectTo }
+                });
+
+                if (error) {
+                    elements.feedbackMessage.textContent = `Error: ${error.message}`;
+                } else {
+                    elements.feedbackMessage.textContent = 'Check your inbox for the magic link!';
+                    elements.emailLoginBtn.disabled = true; // Prevent resending too quickly
+                }
+            };
+
+            // --- 6. EVENT LISTENERS ---
+            elements.googleBtn.addEventListener('click', () => handleOAuthLogin('google'));
+            elements.appleBtn.addEventListener('click', () => handleOAuthLogin('apple'));
+            elements.emailChoiceBtn.addEventListener('click', showEmailForm);
+            elements.emailBackBtn.addEventListener('click', showAuthOptions);
+            elements.emailLoginBtn.addEventListener('click', handleEmailLogin);
+
+            // Allow submitting email form with Enter key
+            elements.emailInput.addEventListener('keyup', (event) => {
+                if (event.key === 'Enter') {
+                    handleEmailLogin();
+                }
+            });
+
+            // --- 7. INITIALIZATION ---
+            checkSession();
+        });
+    </script>
+</body>
+</html>
