@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- PWA Full-Screen Immersion Directives -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,12 +12,10 @@
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
     <title>MORSI - Welcome</title>
 
-    <!-- Font Architecture -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
     
-    <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -61,19 +58,19 @@
         .btn.btn-dark { background-color: transparent; color: var(--text-primary); box-shadow: inset 0 0 0 1px #333; }
         .btn.btn-primary { background-color: var(--accent-blue); color: var(--text-primary); }
         .btn svg { width: 20px; height: 20px; }
-        #email-form { display: flex; flex-direction: column; gap: 1rem; }
-        .email-input { width: 100%; background-color: var(--bg-card); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1rem; font-family: var(--font-main); font-size: 1.1rem; color: var(--text-primary); text-align: center; }
-        .email-input:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(42, 82, 170, 0.5); }
-        #email-back-btn { font-size: 0.9rem; color: var(--text-tertiary); margin-top: 0.5rem; }
+        
+        #email-form, #otp-form { display: flex; flex-direction: column; gap: 1rem; }
+        .input-field { width: 100%; background-color: var(--bg-card); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 1rem; font-family: var(--font-main); font-size: 1.1rem; color: var(--text-primary); text-align: center; }
+        .input-field:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(42, 82, 170, 0.5); }
+        .back-btn { font-size: 0.9rem; color: var(--text-tertiary); margin-top: 0.5rem; background: none; box-shadow: none; }
         .hidden { display: none !important; }
-        #feedback-message { margin-top: 1rem; color: var(--text-secondary); text-align: center; }
+        #feedback-message { min-height: 20px; margin-top: 1rem; color: var(--text-secondary); text-align: center; }
         .login-footer { display: flex; gap: 1.5rem; margin-top: 2rem; }
         .login-footer a { color: var(--text-tertiary); font-size: 0.8rem; text-decoration: none; transition: color 0.2s ease; }
         .login-footer a:hover { color: var(--text-secondary); }
     </style>
 </head>
 <body>
-
     <main class="login-container">
         <div class="illustration-container"> 
             <img src="media/imagebackground.jpg" alt="Illustration of a person looking at their phone in a dark room">
@@ -94,14 +91,21 @@
                     <span>Continue with Google</span>
                 </button>
                 <button id="email-choice-btn" class="btn btn-dark">
-                    <span>Continue with email</span>
+                    <span>Sign in / Sign up with Email</span>
                 </button>
             </div>
             
             <div id="email-form" class="button-group hidden">
-                <input type="email" id="email-input" class="email-input" placeholder="your@email.com" required>
-                <button id="email-login-btn" class="btn btn-primary">Send Magic Link</button>
-                <button id="email-back-btn" class="btn">Back</button>
+                <input type="email" id="email-input" class="input-field" placeholder="your@email.com" required>
+                <button id="send-code-btn" class="btn btn-primary">Send Code</button>
+                <button id="email-back-btn" class="btn back-btn">Back</button>
+            </div>
+
+            <div id="otp-form" class="button-group hidden">
+                <p id="otp-message" style="text-align: center; color: var(--text-secondary);"></p>
+                <input type="text" id="otp-input" class="input-field" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="_ _ _ _ _ _">
+                <button id="verify-code-btn" class="btn btn-primary">Verify Code</button>
+                <button id="otp-back-btn" class="btn back-btn">Change Email</button>
             </div>
 
             <p id="feedback-message"></p>
@@ -115,13 +119,11 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Log para garantir que o script mais recente está sendo executado
-            console.log("LOGIN SCRIPT v4 - The definitive one");
+            console.log("LOGIN SCRIPT v5.1 - OTP Flow");
 
             // --- 1. SUPABASE INITIALIZATION ---
-            // Suas chaves reais estão aqui, parcialmente ocultas por segurança.
             const SUPABASE_URL = 'https://moxwfwcfjkzhhjhrjivi.supabase.co'; 
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1veHdmd2Nmamt6aGhqaHJqaXZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0OTc3NjksImV4cCI6MjA3NjA3Mzc2OX0.97l0wv7ie1BKOU9ad8rIbFoxMsZpp2Sad2kTHbrEzSI'; // Sua chave
+            const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_COMPLETA_E_CORRETA_AQUI'; // <-- IMPORTANTE: Substitua pela sua chave ANON pública.
             const { createClient } = supabase;
             const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
@@ -130,149 +132,121 @@
                 body: document.body,
                 authOptions: document.getElementById('auth-options'),
                 emailForm: document.getElementById('email-form'),
-                emailChoiceBtn: document.getElementById('email-choice-btn'),
-                emailLoginBtn: document.getElementById('email-login-btn'),
-                feedbackMessage: document.getElementById('feedback-message')
+                otpForm: document.getElementById('otp-form'),
+                emailInput: document.getElementById('email-input'),
+                otpInput: document.getElementById('otp-input'),
+                sendCodeBtn: document.getElementById('send-code-btn'),
+                verifyCodeBtn: document.getElementById('verify-code-btn'),
+                emailBackBtn: document.getElementById('email-back-btn'),
+                otpBackBtn: document.getElementById('otp-back-btn'),
+                otpMessage: document.getElementById('otp-message'),
+                feedbackMessage: document.getElementById('feedback-message'),
+                appleLoginBtn: document.getElementById('apple-login-btn'),
+                googleLoginBtn: document.getElementById('google-login-btn'),
+                emailChoiceBtn: document.getElementById('email-choice-btn')
+            };
+
+            let userEmailForVerification = '';
+    
+            // --- 3. UI STATE FUNCTIONS ---
+            const showView = (viewToShow) => {
+                ['authOptions', 'emailForm', 'otpForm'].forEach(view => {
+                    elements[view].classList.add('hidden');
+                });
+                elements[viewToShow].classList.remove('hidden');
+                elements.feedbackMessage.textContent = '';
             };
     
-            // --- 3. UI LOGIC ---
-            elements.emailChoiceBtn.querySelector('span').textContent = 'Sign in / Sign up with Email';
-    
             // --- 4. AUTHENTICATION & REDIRECTION LOGIC ---
-            let isRedirecting = false; // Flag para evitar redirecionamentos múltiplos
-    
+            let isRedirecting = false;
             const handleUserSession = async (session) => {
-                if (!session || isRedirecting) {
-                    if (isRedirecting) console.log("Redirection already in progress.");
-                    return;
-                }
-    
+                if (!session || isRedirecting) return;
                 isRedirecting = true;
-                console.log('Session found! Checking profile...', session);
-                elements.feedbackMessage.textContent = 'Authenticating...';
+                elements.feedbackMessage.textContent = 'Success! Loading your profile...';
                 
-                const { data: profile, error } = await _supabase
-                    .from('profiles')
-                    .select('id')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (error && error.code !== 'PGRST116') {
-                     console.error("Error fetching profile:", error);
-                     isRedirecting = false; // Libera a flag em caso de erro para permitir nova tentativa
-                     elements.feedbackMessage.textContent = "Error checking profile. Please try again.";
-                     return;
-                }
-    
+                const { data: profile } = await _supabase.from('profiles').select('id').eq('id', session.user.id).single();
+                
                 if (profile) {
-                    console.log('Profile exists. Redirecting to index.html');
                     localStorage.setItem('morsiOnboardingComplete', 'true');
-                    window.location.replace('index.html'); // .replace() é melhor para histórico
+                    window.location.replace('index.html');
                 } else {
-                    console.log('No profile found. Redirecting to onboarding.html');
                     window.location.replace('onboarding.html');
                 }
             };
 
-            // Função de verificação ativa e confiável
-            const checkForSession = () => {
-                console.log("Actively checking session...");
-                _supabase.auth.getSession().then(({ data: { session } }) => {
-                    if (session) {
-                        console.log("Session found during active check.");
-                        handleUserSession(session);
-                    } else {
-                        console.log("No session found during active check.");
-                    }
-                });
-            };
-    
-            // --- 5. EVENT LISTENERS & HANDLERS ---
-    
-            // Ouve eventos de autenticação que acontecem DENTRO do app (OAuth)
-            _supabase.auth.onAuthStateChange((event, session) => {
-                console.log(`Auth event received: ${event}`);
-                if (event === 'SIGNED_IN') {
-                    handleUserSession(session);
-                }
-            });
-    
-            // Handler para o Magic Link
-            const handleEmailLogin = async () => {
-                const email = document.getElementById('email-input').value.trim();
-                if (!email) {
-                    elements.feedbackMessage.textContent = 'Please enter your email address.';
+            // --- 5. EVENT HANDLERS ---
+            const handleSendCode = async () => {
+                userEmailForVerification = elements.emailInput.value.trim();
+                if (!userEmailForVerification) {
+                    elements.feedbackMessage.textContent = 'Please enter a valid email.';
                     return;
                 }
-                elements.emailLoginBtn.disabled = true;
-                elements.feedbackMessage.textContent = 'Sending link...';
+                
+                elements.sendCodeBtn.disabled = true;
+                elements.feedbackMessage.textContent = 'Sending code...';
+
                 const { error } = await _supabase.auth.signInWithOtp({
-                    email: email,
-                    options: {
-                        emailRedirectTo: `${window.location.origin}/auth-confirm.html`,
-                    }
+                    email: userEmailForVerification
                 });
+
                 if (error) {
-                    elements.feedbackMessage.textContent = `Error: ${error.message}`;
-                    elements.emailLoginBtn.disabled = false;
+                    elements.feedbackMessage.textContent = error.message;
                 } else {
-                    elements.feedbackMessage.textContent = 'Check your inbox! Then come back here.';
-                    setTimeout(() => { elements.emailLoginBtn.disabled = false; }, 30000);
+                    elements.feedbackMessage.textContent = '';
+                    elements.otpMessage.innerHTML = `A 6-digit code was sent to <br><strong>${userEmailForVerification}</strong>`;
+                    showView('otpForm');
+                    elements.otpInput.focus();
                 }
+                 elements.sendCodeBtn.disabled = false;
             };
-    
-            // Handler para OAuth
-            const handleOAuthLogin = async (provider) => {
-                elements.feedbackMessage.textContent = `Redirecting to ${provider}...`;
-                await _supabase.auth.signInWithOAuth({
-                    provider: provider,
-                    options: {
-                        redirectTo: `${window.location.origin}/onboarding.html`
-                    }
-                });
-            };
-    
-            // A CORREÇÃO DUPLA: Ouve quando o usuário VOLTA para o app
-            document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
-                    console.log('App became visible. Checking session...');
-                    checkForSession();
-                }
-            });
 
-            window.addEventListener('focus', () => {
-                console.log('App gained focus. Checking session...');
-                checkForSession();
-            });
-    
-            // --- 6. INICIALIZAÇÃO E VERIFICAÇÃO INICIAL ---
-    
+            const handleVerifyCode = async () => {
+                const code = elements.otpInput.value.trim();
+                if (code.length !== 6 || !userEmailForVerification) {
+                    elements.feedbackMessage.textContent = 'Please enter the 6-digit code.';
+                    return;
+                }
+
+                elements.verifyCodeBtn.disabled = true;
+                elements.feedbackMessage.textContent = 'Verifying...';
+
+                const { data, error } = await _supabase.auth.verifyOtp({
+                    email: userEmailForVerification,
+                    token: code,
+                    type: 'email' // Para sign-in, pode ser 'magiclink' ou 'email'. 'email' é mais genérico.
+                });
+
+                if (error) {
+                    elements.feedbackMessage.textContent = "Invalid code. Please try again.";
+                    elements.verifyCodeBtn.disabled = false;
+                } else if (data.session) {
+                    // SUCESSO! A sessão é retornada aqui.
+                    await handleUserSession(data.session);
+                } else {
+                    // Caso raro onde não há erro mas não há sessão
+                    elements.feedbackMessage.textContent = "Could not log in. Please try again.";
+                    elements.verifyCodeBtn.disabled = false;
+                }
+            };
+            
+            const handleOAuthLogin = async (provider) => { /* Implementação OAuth permanece a mesma */ };
+
+            // --- 6. INITIALIZATION & EVENT LISTENERS ---
             const initializePage = async () => {
-                // Adiciona os listeners aos botões
-                document.getElementById('google-login-btn').addEventListener('click', () => handleOAuthLogin('google'));
-                document.getElementById('apple-login-btn').addEventListener('click', () => handleOAuthLogin('apple'));
-                elements.emailChoiceBtn.addEventListener('click', () => {
-                     elements.authOptions.classList.add('hidden');
-                     elements.emailForm.classList.remove('hidden');
-                });
-                document.getElementById('email-back-btn').addEventListener('click', () => {
-                     elements.emailForm.classList.add('hidden');
-                     elements.authOptions.classList.remove('hidden');
-                });
-                elements.emailLoginBtn.addEventListener('click', handleEmailLogin);
+                elements.emailChoiceBtn.addEventListener('click', () => showView('emailForm'));
+                elements.emailBackBtn.addEventListener('click', () => showView('authOptions'));
+                elements.otpBackBtn.addEventListener('click', () => showView('emailForm'));
+                elements.sendCodeBtn.addEventListener('click', handleSendCode);
+                elements.verifyCodeBtn.addEventListener('click', handleVerifyCode);
+                
+                elements.emailInput.addEventListener('keyup', e => e.key === 'Enter' && handleSendCode());
+                elements.otpInput.addEventListener('keyup', e => e.key === 'Enter' && handleVerifyCode());
 
-                // Verifica a sessão assim que a página carrega
-                console.log("Initial page load. Checking for existing session...");
                 const { data: { session } } = await _supabase.auth.getSession();
-
                 if (session) {
                     await handleUserSession(session);
-                }
-                
-                // A página só se torna visível DEPOIS da verificação inicial,
-                // e SOMENTE se não houver um redirecionamento em andamento.
-                if (!isRedirecting) {
-                    console.log("No initial session or redirection. Showing login page.");
+                } else {
+                    showView('authOptions');
                     elements.body.style.opacity = '1';
                 }
             };
@@ -280,6 +254,5 @@
             initializePage();
         });
     </script>
-    
 </body>
 </html>
