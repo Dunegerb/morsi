@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
+
     <!-- PWA Full-Screen Immersion Directives -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -22,10 +22,10 @@
     <!-- The Engine of Motion - GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 
-    <!-- NEW: Supabase Client Library -->
+    <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- ANOTAÇÃO: Importmap adicionado para carregar o Three.js para a nova animação. -->
+
+    <!-- NEW: Three.js Import Map for the 3D Animation -->
     <script type="importmap">
     {
       "imports": {
@@ -34,7 +34,7 @@
       }
     }
     </script>
-
+    
     <style>
         /* style.css (Purified, Corrected & Embedded) */
 
@@ -195,26 +195,32 @@
         }
         .reset-button:hover { color: var(--text-primary); }
 
-        /* ANOTAÇÃO: O CSS do antigo .chart-area e barras foi removido. */
-        /* Novo CSS para o container da animação. */
-        #animation-container {
+        .chart-area {
             flex-grow: 1;
             position: relative;
-            margin-top: 1.5rem; /* Aumentei um pouco a margem para dar espaço */
-            min-height: 150px; /* Garante uma altura mínima */
-            border-radius: 16px;
-            overflow: hidden; /* Garante que o canvas não saia das bordas arredondadas */
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center; /* Center the canvas horizontally */
+            align-items: center; /* Center the canvas vertically */
         }
-        #animation-container canvas {
+        /* NEW: Styles for the animation canvas */
+        .chart-area canvas {
+            display: block;
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            display: block;
         }
 
-
+        .chart-background {
+            position: absolute;
+            inset: 0;
+            opacity: 0.5;
+            mask-image: radial-gradient(ellipse 90% 75% at 50% 50%, black 0%, black 65%, transparent 100%);
+            -webkit-mask-image: radial-gradient(ellipse 90% 75% at 50% 50%, black 0%, black 65%, transparent 100%);
+        }
+        
         .lower-grid {
             display: grid;
             grid-template-columns: 197fr 150fr;
@@ -366,9 +372,23 @@
                 <button id="reset-button" class="reset-button">reset</button>
             </div>
 
-            <!-- ANOTAÇÃO: O antigo 'chart-area' foi removido e substituído por este container para a animação. -->
-            <div id="animation-container"></div>
-            
+            <!-- MODIFIED: Chart Area now hosts the 3D animation -->
+            <div id="chart-area" class="chart-area">
+                <div class="chart-background">
+                    <svg width="100%" height="100%" preserveAspectRatio="none">
+                        <defs>
+                            <pattern id="grid" width="12" height="12" patternUnits="userSpaceOnUse">
+                                <path d="M 12 0 L 0 0 0 12" fill="none" stroke="rgba(149, 149, 149, 0.1)" stroke-width="1"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                        <line x1="0" y1="25%" x2="100%" y2="25%" stroke="rgba(149, 149, 149, 0.2)" stroke-width="1" />
+                        <line x1="0" y1="50%" x2="100%" y2="50%" stroke="rgba(149, 149, 149, 0.2)" stroke-width="1" />
+                        <line x1="0" y1="75%" x2="100%" y2="75%" stroke="rgba(149, 149, 149, 0.2)" stroke-width="1" />
+                    </svg>
+                </div>
+                <!-- The 3D canvas will be inserted here by JavaScript -->
+            </div>
         </section>
 
         <div class="lower-grid">
@@ -395,7 +415,7 @@
     </main>
 
     <nav class="bottom-nav">
-        <!-- Add IDs to nav items to handle navigation later -->
+        <!-- Nav items remain the same -->
         <a href="index.html" id="nav-home" class="nav-item active">
             <div class="nav-icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.78572 12.8571C8.78572 11.3581 10.0009 10.143 11.5 10.143C12.9991 10.143 14.2143 11.3581 14.2143 12.8571C14.2143 14.3562 12.9991 15.5713 11.5 15.5713C10.7802 15.5713 10.0898 15.2853 9.58073 14.7763C9.07167 14.2673 8.78572 13.5769 8.78572 12.8571Z" stroke="#F1EBEB" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M4.88664 4.81377L8.59436 2.75104C10.4025 1.74965 12.5989 1.74965 14.407 2.75104L18.1147 4.81377C19.8842 5.78101 20.989 7.63253 21 9.64893V15.3241C20.9524 18.5056 18.335 21.0462 15.1534 20.9994H7.84657C4.66498 21.0462 2.04762 18.5056 2 15.3241V9.64893C2.01125 7.63224 3.11667 5.78065 4.88664 4.81377Z" stroke="#F1EBEB" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Home</span>
         </a>
@@ -406,12 +426,10 @@
             <div class="nav-icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.379 6.69999C14.379 4.60429 12.6392 2.89999 10.5 2.89999C8.36075 2.89999 6.62103 4.60429 6.62103 6.69999C6.62103 8.7957 8.36075 10.5 10.5 10.5C12.6392 10.5 14.379 8.7957 14.379 6.69999ZM18.0485 20H16.3185C15.7832 20 15.3487 19.5744 15.3487 19.05C15.3487 18.5256 15.7832 18.1 16.3185 18.1H16.7345C17.4055 18.1 17.9011 17.4378 17.647 16.8289C16.4726 14.0131 13.7147 12.4 10.5 12.4C7.28531 12.4 4.52736 14.0131 3.353 16.8289C3.09893 17.4378 3.59449 18.1 4.26555 18.1H4.68155C5.21684 18.1 5.65129 18.5256 5.65129 19.05C5.65129 19.5744 5.21684 20 4.68155 20H2.95153C1.73935 20 0.785127 18.9141 1.04211 17.7542C1.74808 14.5631 3.95232 12.2081 6.85572 11.1393C5.53105 10.0953 4.68155 8.4955 4.68155 6.69999C4.68155 3.32654 7.67224 0.638028 11.1973 1.03988C13.7515 1.33058 15.8675 3.32459 16.2506 5.81644C16.5803 7.9644 15.6833 9.92617 14.1443 11.1393C17.0477 12.2081 19.2519 14.5631 19.9579 17.7542C20.2149 18.9141 19.2606 20 18.0485 20ZM13.4092 19.05C13.4092 19.5744 12.9748 20 12.4395 20H8.56052C8.02522 20 7.59077 19.5744 7.59077 19.05C7.59077 18.5256 8.02522 18.1 8.56052 18.1H12.4395C12.9748 18.1 13.4092 18.5256 13.4092 19.05Z" fill="#F1EBEB"></path></svg></div><span>Me</span>
         </a>
     </nav>
-    
-    <!-- ANOTAÇÃO: O script agora é type="module" para suportar a nova animação. -->
+
     <script type="module">
-        // ANOTAÇÃO: Importações do Three.js necessárias para a animação.
+        // Import Three.js using the import map
         import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         document.addEventListener('DOMContentLoaded', async () => {
             // --- 1. SUPABASE INITIALIZATION ---
@@ -426,14 +444,7 @@
                 profile: null,
                 dayCount: 0,
                 resetTimestamp: null,
-                countdownFrameId: null,
-                animation: { // ANOTAÇÃO: Estado para guardar referências da animação
-                    isInitialized: false,
-                    gooMat: null,
-                    pMat: null,
-                    sunMat: null,
-                    haloMat: null,
-                }
+                countdownFrameId: null
             };
             
             const ALL_STAGES = [
@@ -444,109 +455,17 @@
                 body: document.body,
                 dayCount: document.getElementById('day-count'),
                 countdownTimer: document.getElementById('countdown-timer'),
-                // ANOTAÇÃO: Elementos do gráfico de barras removidos.
+                chartArea: document.getElementById('chart-area'), // ADDED
                 resetButton: document.getElementById('reset-button'),
                 stageList: document.getElementById('stage-list'),
                 stageIndicator: document.querySelector('.stage-indicator'),
                 stagePeriod: document.querySelector('.stage-period'),
                 calendarGrid: document.getElementById('calendar-grid'),
-                cards: document.querySelectorAll('.card'),
-                animationContainer: document.getElementById('animation-container') // ANOTAÇÃO: Novo elemento.
-            };
-
-            // --- 3. NOVA ANIMAÇÃO 3D (INTEGRADA) ---
-            const initAnimation = () => {
-                if (STATE.animation.isInitialized || !elements.animationContainer) return;
-
-                // --- Configuráveis da Animação ---
-                const START_COVER = 1.0;
-                const MIN_COVER = 0.03;
-                const DAY_DECREMENT = 0.07;
-                // ------------------------------------
-                
-                const container = elements.animationContainer;
-                const scene = new THREE.Scene();
-                const camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 1000);
-                camera.position.set(0, 0, 6);
-
-                const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-                renderer.setSize(container.clientWidth, container.clientHeight);
-                renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
-                container.appendChild(renderer.domElement);
-
-                const controls = new OrbitControls(camera, renderer.domElement);
-                controls.enablePan = false;
-                controls.enableZoom = false; // Desabilitado para experiência mobile
-                controls.minDistance = 4;
-                controls.maxDistance = 10;
-                controls.autoRotate = true; // Habilitado para dar um movimento sutil
-                controls.autoRotateSpeed = 0.3;
-                controls.enableDamping = true;
-                controls.dampingFactor = 0.05;
-
-                window.addEventListener('resize', () => {
-                    const w = container.clientWidth;
-                    const h = container.clientHeight;
-                    camera.aspect = w / h;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(w, h);
-                });
-
-                const amb = new THREE.AmbientLight(0xffffff, 0.06);
-                scene.add(amb);
-                
-                const sunGeo = new THREE.SphereGeometry(1.6, 64, 64);
-                STATE.animation.sunMat = new THREE.MeshBasicMaterial({ color: 0xfff6d0 });
-                const sun = new THREE.Mesh(sunGeo, STATE.animation.sunMat);
-                scene.add(sun);
-
-                const haloGeo = new THREE.SphereGeometry(1.65, 32, 32);
-                STATE.animation.haloMat = new THREE.MeshBasicMaterial({ color: 0xfff0b8, transparent:true, opacity:0.12, blending: THREE.AdditiveBlending });
-                const halo = new THREE.Mesh(haloGeo, STATE.animation.haloMat);
-                scene.add(halo);
-
-                const gooGeo = new THREE.IcosahedronGeometry(1.68, 64);
-                const gooVert = `varying vec3 vPos; varying vec3 vNormal; varying vec4 vWorldPos; void main(){ vPos = position; vNormal = normal; vWorldPos = modelMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * viewMatrix * vWorldPos; }`;
-                const gooFrag = `precision highp float; varying vec3 vPos; varying vec3 vNormal; uniform float time; uniform float gooPower; uniform float aspect; uniform float speed; vec4 mod289(vec4 x){ return x - floor(x * (1.0/289.0)) * 289.0; } vec3 mod289(vec3 x){ return x - floor(x * (1.0/289.0)) * 289.0; } vec4 permute(vec4 x){ return mod289(((x*34.0)+1.0)*x); } float snoise(vec3 v){ const vec2 C = vec2(1.0/6.0, 1.0/3.0); const vec4 D = vec4(0.0, 0.5, 1.0, 2.0); vec3 i  = floor(v + dot(v, C.yyy) ); vec3 x0 = v - i + dot(i, C.xxx); vec3 g = step(x0.yzx, x0.xyz); vec3 l = 1.0 - g; vec3 i1 = min( g.xyz, l.zxy ); vec3 i2 = max( g.xyz, l.zxy ); vec3 x1 = x0 - i1 + C.xxx; vec3 x2 = x0 - i2 + C.yyy; vec3 x3 = x0 - D.yyy; i = mod289(i); vec4 p = permute( permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 )) + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) + i.x + vec4(0.0, i1.x, i2.x, 1.0 )); float n_ = 0.142857142857; vec3 ns = n_ * D.wyz - D.xzx; vec4 j = p - 49.0 * floor(p * ns.z * ns.z); vec4 x_ = floor(j * ns.z); vec4 y_ = floor(j - 7.0 * x_ ); vec4 x = x_ *ns.x + ns.y; vec4 y = y_ *ns.x + ns.y; vec4 h = 1.0 - abs(x) - abs(y); vec4 b0 = vec4( x.xy, y.xy ); vec4 b1 = vec4( x.zw, y.zw ); vec4 s0 = floor(b0)*2.0 + 1.0; vec4 s1 = floor(b1)*2.0 + 1.0; vec4 sh = -step(h, vec4(0.0)); vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy; vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww; vec3 p0 = vec3(a0.xy,h.x); vec3 p1 = vec3(a0.zw,h.y); vec3 p2 = vec3(a1.xy,h.z); vec3 p3 = vec3(a1.zw,h.w); vec4 norm = inversesqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3))); p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w; vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0); m = m * m; return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) ); } float fbm(vec3 p){ float v = 0.0; float a = 0.5; for(int i=0;i<5;i++){ v += a * snoise(p); p *= 2.0; a *= 0.5; } return v; } vec3 gooColor(float intensity){ return vec3(0.0, 0.0, 0.0); } void main(){ vec3 p = normalize(vPos) * 1.2; float t = time * 0.12 * speed; vec3 flowP = p + vec3(t*0.6, -t*0.15, t*0.1); float n = fbm(flowP * 2.2 + vec3(t*0.8)); float fine = fbm(flowP * 8.0 + vec3(t*1.8)) * 0.4; float veins = smoothstep(0.18, 0.66, abs(sin(n * 3.1415*1.2)) - fine * 0.8); float litFactor = clamp(1.0 - (vPos.x * 0.6 + 0.5), 0.0, 1.0); float coverage = mix(0.05, 1.0, gooPower); float mask = smoothstep(0.25, 0.72, n * 1.6 + fine * 0.8 + veins * 1.0 - (1.0 - coverage) * 1.4 - (vPos.x * 0.8)); float edgeDetail = snoise(flowP * 16.0 + vec3(t*3.0)) * 0.5 + 0.5; mask *= mix(0.7, 1.0, edgeDetail); float specks = step(0.995, fract(sin(dot(flowP.xy ,vec2(12.9898,78.233))) * 43758.5453 + t*10.0)); specks *= mask * 1.3; float intensity = mask * mix(0.4, 1.0, litFactor); vec3 col = gooColor(intensity); float sunProximity = smoothstep(0.0, 0.8, 1.0 - length(vPos) ); vec3 lightBleed = vec3(1.0,0.9,0.7) * sunProximity * 0.08 * (1.0 - gooPower + 0.2); vec3 final = col * intensity; final += vec3(0.9,0.95,1.0) * specks * 0.6; float alpha = clamp(mask * 1.2, 0.0, 1.0); alpha *= mix(0.85, 0.98, gooPower); gl_FragColor = vec4(final, alpha); gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0/1.7)); }`;
-                STATE.animation.gooMat = new THREE.ShaderMaterial({ vertexShader: gooVert, fragmentShader: gooFrag, transparent: true, depthWrite: false, blending: THREE.NormalBlending, uniforms: { time: { value: 0.0 }, gooPower: { value: START_COVER }, aspect: { value: container.clientWidth/container.clientHeight }, speed: { value: 0.8 } } });
-                const gooMesh = new THREE.Mesh(gooGeo, STATE.animation.gooMat);
-                scene.add(gooMesh);
-
-                const PARTICLE_COUNT = 400; const pPositions = new Float32Array(PARTICLE_COUNT * 3); const pOffsets = new Float32Array(PARTICLE_COUNT); for(let i=0;i<PARTICLE_COUNT;i++){ const theta = Math.random() * Math.PI * 2; const phi = Math.acos(2*Math.random()-1); const r = 1.7 + Math.random() * 0.12; pPositions[i*3+0] = Math.sin(phi) * Math.cos(theta) * r; pPositions[i*3+1] = Math.sin(phi) * Math.sin(theta) * r; pPositions[i*3+2] = Math.cos(phi) * r; pOffsets[i] = Math.random(); } const pGeo = new THREE.BufferGeometry(); pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3)); pGeo.setAttribute('aOffset', new THREE.BufferAttribute(pOffsets, 1));
-                const particleVert = `attribute float aOffset; varying float vAlpha; uniform float time; uniform float gooPower; uniform float speed; float hash(float n){ return fract(sin(n) * 43758.5453); } void main(){ float t = time * 0.6 * speed + aOffset * 10.0; vec3 pos = position; float drift = (1.0 - gooPower) * 0.6; pos.x += sin(t * 0.8 + aOffset*6.0) * 0.02; pos.y += cos(t * 1.1 + aOffset*5.0) * 0.02; pos.z += sin(t * 1.4 + aOffset*8.0) * 0.01; vec3 dir = normalize(pos); pos -= dir * 0.06 * gooPower; vAlpha = 0.5 + 0.5 * hash(aOffset * 123.0 + t); gl_PointSize = 0.5 + 1.5 * vAlpha * (1.0 + gooPower*1.2); gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0); }`;
-                const particleFrag = `precision mediump float; varying float vAlpha; void main(){ float r = length(gl_PointCoord - vec2(0.5)); float m = smoothstep(0.5, 0.0, r); vec3 c = vec3(0.8,0.9,1.0); gl_FragColor = vec4(c * 0.7, m * vAlpha * 0.45); }`;
-                STATE.animation.pMat = new THREE.ShaderMaterial({ vertexShader: particleVert, fragmentShader: particleFrag, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, uniforms: { time: {value: 0}, gooPower: {value: START_COVER}, speed: {value: 0.8} } });
-                const particles = new THREE.Points(pGeo, STATE.animation.pMat);
-                scene.add(particles);
-
-                const clock = new THREE.Clock();
-                function animate(){
-                    requestAnimationFrame(animate);
-                    const t = clock.getElapsedTime();
-                    STATE.animation.gooMat.uniforms.time.value = t;
-                    STATE.animation.pMat.uniforms.time.value = t;
-                    controls.update(); // Necessário para damping e auto-rotate
-                    renderer.render(scene, camera);
-                }
-                animate();
-
-                // ANOTAÇÃO: Função para ser chamada de fora e atualizar o estado da animação
-                const updateCover = (dayCount) => {
-                    const cover = Math.max(MIN_COVER, START_COVER - DAY_DECREMENT * dayCount);
-                    if (STATE.animation.gooMat) STATE.animation.gooMat.uniforms.gooPower.value = cover;
-                    if (STATE.animation.pMat) STATE.animation.pMat.uniforms.gooPower.value = cover;
-
-                    const sunLight = 0.7 + (1.0 - cover) * 1.5;
-                    if(STATE.animation.sunMat) STATE.animation.sunMat.color.setScalar(sunLight);
-                    if(STATE.animation.haloMat) STATE.animation.haloMat.opacity = 0.06 + (1.0 - cover) * 0.18;
-                };
-
-                STATE.animation.isInitialized = true;
-                STATE.animation.update = updateCover; // Expõe a função de atualização
+                cards: document.querySelectorAll('.card')
             };
             
-            // --- 4. DATA & STATE MANAGEMENT (NOW WITH SUPABASE) ---
-
+            // --- 3. DATA & STATE MANAGEMENT ---
+            // (Supabase functions remain the same)
             const loadStateFromSupabase = async (userId) => {
                 const { data, error } = await _supabase.from('profiles').select('name, reset_timestamp').eq('id', userId).single();
                 if (error && error.code !== 'PGRST116') { console.error('Error fetching profile:', error); return false; }
@@ -555,13 +474,11 @@
                 STATE.resetTimestamp = data.reset_timestamp ? new Date(data.reset_timestamp).getTime() : null;
                 return true;
             };
-
             const saveStateToSupabase = async () => {
                 if (!STATE.user) return;
                 const { error } = await _supabase.from('profiles').update({ reset_timestamp: STATE.resetTimestamp ? new Date(STATE.resetTimestamp).toISOString() : null }).eq('id', STATE.user.id);
-                if (error) { console.error('Error saving progress:', error); alert('Could not save your progress. Please check your connection.'); }
+                if (error) { console.error('Error saving progress:', error); alert('Could not save your progress.'); }
             };
-
             const calculateAndUpdateDays = () => {
                 if (!STATE.resetTimestamp) { STATE.dayCount = 0; return; }
                 const elapsedMilliseconds = Date.now() - STATE.resetTimestamp;
@@ -569,8 +486,8 @@
                 STATE.dayCount = elapsedDays;
             };
             
-            // --- 5. UI & ANIMATION LOGIC ---
-
+            // --- 4. UI LOGIC (Countdown, Static Content) ---
+            // (These functions remain mostly the same, but without the bar chart logic)
             const formatTime = (ms) => {
                 const totalSeconds = Math.max(0, Math.floor(ms / 1000));
                 const hours = Math.floor(totalSeconds / 3600);
@@ -578,39 +495,138 @@
                 const seconds = totalSeconds % 60;
                 return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
             };
-            
             const startCountdown = () => {
                 if (STATE.countdownFrameId) cancelAnimationFrame(STATE.countdownFrameId);
                 if (!STATE.resetTimestamp || STATE.dayCount > 0) return;
                 const tick = () => {
                     const elapsed = Date.now() - STATE.resetTimestamp;
                     const remaining = (24 * 60 * 60 * 1000) - elapsed;
-                    if (remaining <= 0) { calculateAndUpdateDays(); updateAll(true); } 
-                    else { elements.countdownTimer.textContent = formatTime(remaining); STATE.countdownFrameId = requestAnimationFrame(tick); }
+                    if (remaining <= 0) {
+                        calculateAndUpdateDays();
+                        updateAll(true);
+                    } else {
+                        elements.countdownTimer.textContent = formatTime(remaining);
+                        STATE.countdownFrameId = requestAnimationFrame(tick);
+                    }
                 };
                 tick();
             };
-
             const populateStaticContent = () => {
                 for(let i = 0; i < 7; i++) {
                     elements.stageIndicator.appendChild(document.createElement('div')).className = 'indicator-line';
                 }
             };
             
+            // --- 5. 3D SUN ANIMATION LOGIC ---
+            
+            // This object will hold the animation's state and update function
+            const sunAnimation = {
+                isInitialized: false,
+                gooMat: null,
+                pMat: null,
+                // --- Configuráveis ---
+                MIN_COVER: 0.03, // Smallest amount of goo
+                MAX_DAYS_FOR_ANIMATION: 90 // After 90 days, the sun is fully uncovered
+            };
+
+            const calculateGooCover = (days) => {
+                const progress = Math.min(1, days / sunAnimation.MAX_DAYS_FOR_ANIMATION);
+                const cover = 1.0 - progress * (1.0 - sunAnimation.MIN_COVER);
+                return Math.max(sunAnimation.MIN_COVER, cover);
+            };
+
+            const updateSunAnimation = (dayCount) => {
+                if (!sunAnimation.isInitialized) return;
+
+                const newCover = calculateGooCover(dayCount);
+                
+                // Use GSAP for smooth transition of the uniform value
+                gsap.to(sunAnimation.gooMat.uniforms.gooPower, { value: newCover, duration: 1.5, ease: "power2.inOut" });
+                gsap.to(sunAnimation.pMat.uniforms.gooPower, { value: newCover, duration: 1.5, ease: "power2.inOut" });
+            };
+
+            const initSunAnimation = (container) => {
+                if (sunAnimation.isInitialized) return;
+
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 1000);
+                camera.position.set(0, 0, 6);
+
+                const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // alpha: true FOR TRANSPARENT BG
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+                container.appendChild(renderer.domElement);
+
+                // Resize handler
+                const resizeObserver = new ResizeObserver(entries => {
+                    const entry = entries[0];
+                    const { width, height } = entry.contentRect;
+                    camera.aspect = width / height;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(width, height);
+                });
+                resizeObserver.observe(container);
+
+                // --- Scene objects (copied from animation file) ---
+                const amb = new THREE.AmbientLight(0xffffff, 0.06);
+                scene.add(amb);
+
+                const sunGeo = new THREE.SphereGeometry(1.6, 64, 64);
+                const sunMat = new THREE.MeshBasicMaterial({ color: 0xfff6d0 });
+                const sun = new THREE.Mesh(sunGeo, sunMat);
+                scene.add(sun);
+
+                const haloGeo = new THREE.SphereGeometry(1.65, 32, 32);
+                const haloMat = new THREE.MeshBasicMaterial({ color: 0xfff0b8, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending });
+                const halo = new THREE.Mesh(haloGeo, haloMat);
+                scene.add(halo);
+
+                const gooGeo = new THREE.IcosahedronGeometry(1.68, 64);
+                const gooVert = `varying vec3 vPos; varying vec3 vNormal; varying vec4 vWorldPos; void main(){ vPos = position; vNormal = normal; vWorldPos = modelMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * viewMatrix * vWorldPos; }`;
+                const gooFrag = `precision highp float; varying vec3 vPos; varying vec3 vNormal; uniform float time; uniform float gooPower; uniform float aspect; uniform float speed; vec4 mod289(vec4 x){ return x - floor(x * (1.0/289.0)) * 289.0; } vec3 mod289(vec3 x){ return x - floor(x * (1.0/289.0)) * 289.0; } vec4 permute(vec4 x){ return mod289(((x*34.0)+1.0)*x); } float snoise(vec3 v){ const vec2 C = vec2(1.0/6.0, 1.0/3.0); const vec4 D = vec4(0.0, 0.5, 1.0, 2.0); vec3 i = floor(v + dot(v, C.yyy) ); vec3 x0 = v - i + dot(i, C.xxx); vec3 g = step(x0.yzx, x0.xyz); vec3 l = 1.0 - g; vec3 i1 = min( g.xyz, l.zxy ); vec3 i2 = max( g.xyz, l.zxy ); vec3 x1 = x0 - i1 + C.xxx; vec3 x2 = x0 - i2 + C.yyy; vec3 x3 = x0 - D.yyy; i = mod289(i); vec4 p = permute( permute( permute( i.z + vec4(0.0, i1.z, i2.z, 1.0 )) + i.y + vec4(0.0, i1.y, i2.y, 1.0 )) + i.x + vec4(0.0, i1.x, i2.x, 1.0 )); float n_ = 0.142857142857; vec3 ns = n_ * D.wyz - D.xzx; vec4 j = p - 49.0 * floor(p * ns.z * ns.z); vec4 x_ = floor(j * ns.z); vec4 y_ = floor(j - 7.0 * x_ ); vec4 x = x_ *ns.x + ns.y; vec4 y = y_ *ns.x + ns.y; vec4 h = 1.0 - abs(x) - abs(y); vec4 b0 = vec4( x.xy, y.xy ); vec4 b1 = vec4( x.zw, y.zw ); vec4 s0 = floor(b0)*2.0 + 1.0; vec4 s1 = floor(b1)*2.0 + 1.0; vec4 sh = -step(h, vec4(0.0)); vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy; vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww; vec3 p0 = vec3(a0.xy,h.x); vec3 p1 = vec3(a0.zw,h.y); vec3 p2 = vec3(a1.xy,h.z); vec3 p3 = vec3(a1.zw,h.w); vec4 norm = inversesqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3))); p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w; vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0); m = m * m; return 42.0 * dot( m*m, vec4( dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3) ) ); } float fbm(vec3 p){ float v = 0.0; float a = 0.5; for(int i=0;i<5;i++){ v += a * snoise(p); p *= 2.0; a *= 0.5; } return v; } vec3 gooColor(float intensity){ return vec3(0.0, 0.0, 0.0); } void main(){ vec3 p = normalize(vPos) * 1.2; float t = time * 0.12 * speed; vec3 flowP = p + vec3(t*0.6, -t*0.15, t*0.1); float n = fbm(flowP * 2.2 + vec3(t*0.8)); float fine = fbm(flowP * 8.0 + vec3(t*1.8)) * 0.4; float veins = smoothstep(0.18, 0.66, abs(sin(n * 3.1415*1.2)) - fine * 0.8); float litFactor = clamp(1.0 - (vPos.x * 0.6 + 0.5), 0.0, 1.0); float coverage = mix(0.05, 1.0, gooPower); float mask = smoothstep(0.25, 0.72, n * 1.6 + fine * 0.8 + veins * 1.0 - (1.0 - coverage) * 1.4 - (vPos.x * 0.8)); float edgeDetail = snoise(flowP * 16.0 + vec3(t*3.0)) * 0.5 + 0.5; mask *= mix(0.7, 1.0, edgeDetail); float specks = step(0.995, fract(sin(dot(flowP.xy ,vec2(12.9898,78.233))) * 43758.5453 + t*10.0)); specks *= mask * 1.3; float intensity = mask * mix(0.4, 1.0, litFactor); vec3 col = gooColor(intensity); float sunProximity = smoothstep(0.0, 0.8, 1.0 - length(vPos) ); vec3 lightBleed = vec3(1.0,0.9,0.7) * sunProximity * 0.08 * (1.0 - gooPower + 0.2); vec3 final = col * intensity; final += vec3(0.9,0.95,1.0) * specks * 0.6; float alpha = clamp(mask * 1.2, 0.0, 1.0); alpha *= mix(0.85, 0.98, gooPower); gl_FragColor = vec4(final, alpha); gl_FragColor.rgb = pow(gl_FragColor.rgb, vec3(1.0/1.7)); }`;
+                sunAnimation.gooMat = new THREE.ShaderMaterial({ vertexShader: gooVert, fragmentShader: gooFrag, transparent: true, depthWrite: false, blending: THREE.NormalBlending, uniforms: { time: { value: 0.0 }, gooPower: { value: 1.0 }, aspect: { value: container.clientWidth/container.clientHeight }, speed: { value: 1.0 } } });
+                const gooMesh = new THREE.Mesh(gooGeo, sunAnimation.gooMat);
+                scene.add(gooMesh);
+
+                const PARTICLE_COUNT = 400; const pPositions = new Float32Array(PARTICLE_COUNT * 3); const pOffsets = new Float32Array(PARTICLE_COUNT); for(let i=0;i<PARTICLE_COUNT;i++){ const theta = Math.random() * Math.PI * 2; const phi = Math.acos(2*Math.random()-1); const r = 1.7 + Math.random() * 0.12; pPositions[i*3+0] = Math.sin(phi) * Math.cos(theta) * r; pPositions[i*3+1] = Math.sin(phi) * Math.sin(theta) * r; pPositions[i*3+2] = Math.cos(phi) * r; pOffsets[i] = Math.random(); } const pGeo = new THREE.BufferGeometry(); pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3)); pGeo.setAttribute('aOffset', new THREE.BufferAttribute(pOffsets, 1));
+                const particleVert = `attribute float aOffset; varying float vAlpha; uniform float time; uniform float gooPower; uniform float speed; float hash(float n){ return fract(sin(n) * 43758.5453); } void main(){ float t = time * 0.6 * speed + aOffset * 10.0; vec3 pos = position; float drift = (1.0 - gooPower) * 0.6; pos.x += sin(t * 0.8 + aOffset*6.0) * 0.02; pos.y += cos(t * 1.1 + aOffset*5.0) * 0.02; pos.z += sin(t * 1.4 + aOffset*8.0) * 0.01; vec3 dir = normalize(pos); pos -= dir * 0.06 * gooPower; vAlpha = 0.5 + 0.5 * hash(aOffset * 123.0 + t); gl_PointSize = 0.5 + 1.5 * vAlpha * (1.0 + gooPower*1.2); gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0); }`;
+                const particleFrag = `precision mediump float; varying float vAlpha; void main(){ float r = length(gl_PointCoord - vec2(0.5)); float m = smoothstep(0.5, 0.0, r); vec3 c = vec3(0.8,0.9,1.0); gl_FragColor = vec4(c * 0.7, m * vAlpha * 0.45); }`;
+                sunAnimation.pMat = new THREE.ShaderMaterial({ vertexShader: particleVert, fragmentShader: particleFrag, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, uniforms: { time: {value: 0}, gooPower: {value: 1.0}, speed: {value: 1.0} } });
+                const particles = new THREE.Points(pGeo, sunAnimation.pMat);
+                scene.add(particles);
+
+                // --- Animation loop ---
+                const clock = new THREE.Clock();
+                function animate(){
+                    requestAnimationFrame(animate);
+                    const t = clock.getElapsedTime();
+                    const currentCover = sunAnimation.gooMat.uniforms.gooPower.value; // Get current value
+                    
+                    sunAnimation.gooMat.uniforms.time.value = t;
+                    sunAnimation.pMat.uniforms.time.value = t;
+                    
+                    gooMesh.rotation.y = Math.sin(t*0.06) * 0.06;
+                    particles.rotation.y = gooMesh.rotation.y * 0.7;
+
+                    const sunLight = 0.7 + (1.0 - currentCover) * 1.5;
+                    sunMat.color.setScalar(sunLight);
+                    haloMat.opacity = 0.06 + (1.0 - currentCover) * 0.18;
+
+                    renderer.render(scene, camera);
+                }
+                
+                animate();
+                sunAnimation.isInitialized = true;
+            };
+
+            // --- 6. CORE APP LOGIC ---
+            
             const updateAll = (animate = true) => {
                 const day = STATE.dayCount;
-                
-                // ANOTAÇÃO: O trecho do nome do usuário foi movido para fora, pois não precisa ser atualizado sempre.
                 
                 let activeStageIndex = ALL_STAGES.findIndex(s => day >= s.range[0] && day <= s.range[1]);
                 if (activeStageIndex === -1) activeStageIndex = day > 0 ? ALL_STAGES.length - 1 : 0;
                 
-                // ANOTAÇÃO: Código de altura das barras foi removido.
-                // ANOTAÇÃO: Lógica de atualização da animação 3D.
-                if (STATE.animation.isInitialized && STATE.animation.update) {
-                    STATE.animation.update(day);
-                }
-
                 const tl = gsap.timeline();
                 const duration = animate ? 1.5 : 0;
                 
@@ -623,13 +639,17 @@
                 }
 
                 tl.to(elements.dayCount, { textContent: day, duration: animate ? 1.2 : 0, roundProps: "textContent", ease: "power2.inOut" });
-                // ANOTAÇÃO: Animações GSAP das barras removidas.
 
+                // NEW: Update the sun animation
+                updateSunAnimation(day);
+
+                // Stage & Calendar logic (unchanged)
                 elements.stagePeriod.textContent = ALL_STAGES[activeStageIndex].period;
-                
                 (() => {
                     elements.stageList.innerHTML = '';
-                    const stageWindow = 5; const start = Math.max(0, activeStageIndex - 2); const end = Math.min(ALL_STAGES.length, start + stageWindow);
+                    const stageWindow = 5;
+                    const start = Math.max(0, activeStageIndex - 2);
+                    const end = Math.min(ALL_STAGES.length, start + stageWindow);
                     for (let i = start; i < end; i++) {
                         const item = document.createElement('div');
                         item.className = `stage-item ${i === activeStageIndex ? 'active' : ''}`;
@@ -637,15 +657,18 @@
                         elements.stageList.appendChild(item);
                     }
                     if (elements.stageList.firstElementChild) {
-                        const itemHeight = elements.stageList.firstElementChild.offsetHeight; const containerHeight = elements.stageList.parentElement.offsetHeight; const visualIndex = Math.min(2, activeStageIndex); const offset = (containerHeight / 2) - (itemHeight / 2);
+                        const itemHeight = elements.stageList.firstElementChild.offsetHeight;
+                        const containerHeight = elements.stageList.parentElement.offsetHeight;
+                        const visualIndex = Math.min(2, activeStageIndex);
+                        const offset = (containerHeight / 2) - (itemHeight / 2);
                         const targetY = -(visualIndex * itemHeight) + offset;
                         gsap.to(elements.stageList, { y: targetY, duration: animate ? 1.2 : 0, ease: "power3.inOut" });
                     }
                 })();
                 elements.stageIndicator.querySelectorAll('.indicator-line').forEach((line, index) => line.classList.toggle('active', index === 3));
-
                 elements.calendarGrid.innerHTML = '';
-                const totalCircles = 20; const fragment = document.createDocumentFragment();
+                const totalCircles = 20;
+                const fragment = document.createDocumentFragment();
                 for (let i = 1; i <= totalCircles; i++) {
                     const circle = document.createElement('div');
                     circle.className = 'day-circle';
@@ -655,7 +678,6 @@
                     fragment.appendChild(circle);
                 }
                 elements.calendarGrid.appendChild(fragment);
-
                 if (animate) {
                     gsap.fromTo('.day-circle', { scale: 0 }, { scale: 1, duration: 0.5, stagger: 0.03, ease: "back.out(2)", delay: 0.5 });
                 } else {
@@ -673,22 +695,18 @@
                 }
             };
 
-            // --- 6. APP INITIALIZATION & AUTHENTICATION ---
+            // --- 7. APP INITIALIZATION & AUTHENTICATION ---
             
             const initApp = async () => {
                 const loaded = await loadStateFromSupabase(STATE.user.id);
-                if (!loaded) return;
-
-                // Personaliza UI com nome do usuário (só precisa ser feito uma vez)
-                if (STATE.profile && STATE.profile.name) {
-                    // ANOTAÇÃO: a personalização com o nome do usuário foi removida pois não há mais label para ela.
-                    // Poderia ser re-adicionada em outro lugar se desejado.
-                }
+                if (!loaded) return; 
 
                 populateStaticContent();
-                initAnimation(); // Inicializa a cena 3D
+                // NEW: Initialize the 3D animation
+                initSunAnimation(elements.chartArea);
+
                 calculateAndUpdateDays();
-                updateAll(false);
+                updateAll(false); 
                 
                 elements.body.style.opacity = '1';
                 const tl = gsap.timeline({ delay: 0.3 });
