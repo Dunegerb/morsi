@@ -177,7 +177,7 @@
         .week-tracker {
             display: flex;
             justify-content: space-between;
-            padding: 0 0.5rem;
+            /*padding: 0 0.5rem;*/
         }
         .week-day {
             display: flex;
@@ -191,7 +191,7 @@
         }
         .week-day-dot.active { background-color: var(--dot-white); }
         .week-day-label {
-            font-size: 0.8rem; color: var(--text-tertiary);
+            font-size: 0.7rem; color: var(--text-tertiary);
         }
 
         /* REDESIGN: Card central para o Planeta */
@@ -222,11 +222,6 @@
             color: var(--text-secondary);
             font-size: 1rem;
         }
-        .impulse-meter {
-            display: flex;
-            align-items: flex-end;
-            gap: 3px;
-            height: 16px; /* Altura do medidor */
         }
         .meter-bar {
             width: 3px;
@@ -260,14 +255,7 @@
             font-weight: 600;
             color: var(--text-primary);
         }
-        .stage-progress-line {
-            width: 30px; /* Exemplo de largura */
-            height: 2px;
-            background-color: var(--accent-red);
-            border-radius: 1px;
-            margin-top: 2px;
-            margin-bottom: 8px;
-        }
+        
         .stage-period {
             font-size: 0.8rem;
             color: var(--text-tertiary);
@@ -314,7 +302,7 @@
             justify-content: space-around;
             color: var(--text-tertiary);
             font-size: 0.8rem;
-            padding: 0 5%;
+            /* padding: 0 5%; */
         }
         
         /*------------------------------------*\
@@ -376,12 +364,6 @@
             </div>
             <div class="planet-labels">
                 <span>you</span>
-                <div class="impulse-meter">
-                    <div class="meter-bar"></div>
-                    <div class="meter-bar"></div>
-                    <div class="meter-bar"></div>
-                    <div class="meter-bar"></div>
-                </div>
                 <span>impulses</span>
             </div>
         </section>
@@ -727,7 +709,6 @@
                 elements.stageDisplay.innerHTML = `
                     <div class="stage-item faded">${prevStage.toLowerCase()}</div>
                     <div class="stage-item active">${currentStage.toLowerCase()}</div>
-                    <div class="stage-progress-line"></div>
                     <div class="stage-item faded">${nextStage.toLowerCase()}</div>
                     <span class="stage-period">this week</span>
                 `;
