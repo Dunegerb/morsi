@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-
+    
     <!-- PWA Full-Screen Immersion Directives -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#000000"> <!-- MODIFICADO: Theme color para o novo fundo -->
+    <meta name="theme-color" content="#141414">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="logo.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
@@ -21,11 +21,10 @@
     
     <!-- The Engine of Motion - GSAP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/TextPlugin.min.js"></script> <!-- MODIFICADO: Adicionado TextPlugin para animação do número -->
 
     <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <style>
         /* style.css (Purified, Corrected & Embedded) */
 
@@ -33,16 +32,15 @@
           #ROOT & GLOBAL ARCHITECTURE
         \*------------------------------------*/
         :root {
-            /* MODIFICADO: Paleta de cores atualizada */
-            --bg-main: #050505;
-            --bg-card: #000000;
+            --bg-main: #141414;
+            --bg-card: #1F1F1F;
             --text-primary: #F1EBEB;
             --text-secondary: rgba(241, 235, 235, 0.7);
             --text-tertiary: rgba(241, 235, 235, 0.5);
-            --accent-red: #880C0E; /* Cor Massala */
-            --accent-red-past: #A31F22; /* Um pouco mais claro para o calendário */
-            --accent-green: #39CC59; /* Mantido para referência, mas não usado ativamente */
-            --calendar-future: #2C2C2C;
+            --accent-blue: #2A52AA;
+            --accent-red: #AD1E20;
+            --accent-green: #39CC59;
+            --calendar-past: #505050;
             --font-main: 'Instrument Sans', sans-serif;
             --card-radius: 24px;
             --h-safe-area: env(safe-area-inset-left);
@@ -51,19 +49,31 @@
         }
 
         * {
-            margin: 0; padding: 0; box-sizing: border-box;
-            -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
-        html { height: 100%; overflow: hidden; }
+        html {
+            height: 100%;
+            overflow: hidden;
+        }
 
         body {
-            width: 100%; min-height: 100dvh; margin: 0 auto;
-            background-color: var(--bg-main); /* MODIFICADO */
+            width: 100%;
+            min-height: 100dvh;
+            margin: 0 auto;
+            background-color: var(--bg-main);
             color: var(--text-primary);
             font-family: var(--font-main);
-            display: flex; flex-direction: column; position: relative;
-            overflow: hidden; opacity: 0; transition: opacity 0.5s ease;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            opacity: 0; /* Start hidden for auth check */
+            transition: opacity 0.5s ease;
         }
 
         /*------------------------------------*\
@@ -71,145 +81,128 @@
         \*------------------------------------*/
         .app-header {
             flex-shrink: 0;
-            padding-top: calc(2rem + var(--v-safe-area-top)); /* Ajustado padding */
-            padding-bottom: 1.5rem; /* Ajustado padding */
-            display: flex; justify-content: center; align-items: center;
+            padding-top: calc(3rem + var(--v-safe-area-top));
+            padding-bottom: 3rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        .logo svg { width: auto; height: 1.6rem; }
+        .logo svg {
+            width: auto;
+            height: 1.6rem;
+        }
 
         .app-main {
-            flex-grow: 1; padding: 0 5.2%; overflow-y: auto;
-            -ms-overflow-style: none; scrollbar-width: none;
+            flex-grow: 1;
+            padding: 0 5.2%;
+            overflow-y: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
             padding-bottom: 2rem;
         }
-        .app-main::-webkit-scrollbar { display: none; }
+        .app-main::-webkit-scrollbar {
+            display: none;
+        }
 
         .bottom-nav {
-            flex-shrink: 0; display: flex; justify-content: space-around; align-items: center;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
             padding: 1rem var(--h-safe-area) calc(0.75rem + var(--v-safe-area-bottom)) var(--h-safe-area);
-            background: var(--bg-main); /* MODIFICADO para consistência */
+            background: var(--bg-main);
         }
 
         /*------------------------------------*\
-          #CARDS & COMPONENTS (MODIFICADO)
+          #CARDS & COMPONENTS
         \*------------------------------------*/
         .card {
-            background-color: var(--bg-card); /* MODIFICADO */
+            background-color: var(--bg-card);
             border-radius: var(--card-radius);
             padding: 1.5rem;
-            margin-bottom: 1rem; /* Adicionado espaçamento padrão */
             opacity: 0;
             transform: translateY(30px);
         }
 
-        /* NOVO: Estilos para o card de métricas (topo) */
-        .metrics-card {
-            display: flex;
-            align-items: stretch;
-            gap: 1.5rem;
-        }
-        .day-count-box {
-            background-color: #171717;
-            border-radius: 18px;
-            width: 100px;
-            height: 100px;
+        .count-card {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
+            height: 40vh; 
+            min-height: 320px;
+            margin-bottom: 1rem;
         }
-        #day-count {
-            font-size: 3rem;
-            font-weight: 600;
-            line-height: 1;
-        }
-        .day-count-box span:last-child {
-            font-size: 1rem;
-            color: var(--text-secondary);
-        }
-        .progress-details {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            flex-grow: 1;
-            padding: 0.25rem 0;
-        }
-        .progress-header {
+        .count-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
         }
-        .progress-header h2 {
-            font-size: 1.15rem;
-            font-weight: 500;
-            line-height: 1.3;
+        .count-main {
+            display: flex;
+            flex-direction: column;
+        }
+        .count-top-line {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            min-height: 24px;
+        }
+        .count-label {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+        }
+        #countdown-timer {
+            font-size: 1.25rem;
+            color: var(--text-tertiary);
+            font-feature-settings: 'tnum';
+            visibility: hidden;
+        }
+
+        .count-number-wrapper {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+        #day-count {
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .count-unit {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            padding-bottom: 0.5rem;
         }
         .reset-button {
-            background: none; border: none; color: var(--text-tertiary);
-            font-family: var(--font-main); font-size: 1rem; cursor: pointer;
-            padding: 0; transition: color 0.3s ease;
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            font-family: var(--font-main);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.3s ease;
         }
         .reset-button:hover { color: var(--text-primary); }
-        .week-progress {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #171717;
-            padding: 0.5rem 1rem;
-            border-radius: 99px;
-        }
-        .week-day {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.4rem;
-        }
-        .week-day .dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            background-color: #333;
-            transition: background-color 0.5s ease;
-        }
-        .week-day .dot.past { background-color: #505050; }
-        .week-day .dot.current { background-color: var(--text-primary); }
-        .week-day span { font-size: 0.75rem; color: var(--text-tertiary); }
 
-        /* NOVO: Estilos para o card visual (meio) */
-        .visual-card {
-            height: 30vh;
-            min-height: 250px;
-            display: flex;
+        .chart-area {
+            flex-grow: 1;
+            position: relative;
+            display: flex; 
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            padding: 1rem;
-        }
-        .you-impulse-visual {
-            width: 180px;
-            height: 180px;
-            border-radius: 50%;
-            position: relative;
-            background: linear-gradient(to right, var(--text-primary) 50%, #150203 50%);
+            /* NOVO: Arredondar cantos para conter o canvas */
+            border-radius: inherit;
             overflow: hidden;
         }
-        /* Efeito granulado para a parte vermelha */
-        .you-impulse-visual::after {
-            content: '';
+
+        /* NOVO: Estilos para o canvas da animação */
+        #goo-canvas {
             position: absolute;
-            top: -50%; right: -50%; bottom: -50%; left: 50%;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuNzUiIG51bU9jdGF2ZXM9IjEwIiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNub2lzZSkiLz48L3N2Zz4=');
-            background-color: var(--accent-red);
-            opacity: 0.4;
-            mix-blend-mode: screen;
-        }
-        .visual-labels {
-            display: flex;
-            justify-content: space-between;
-            width: 220px;
-            margin-top: 1.25rem;
-            color: var(--text-secondary);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
         }
 
         .lower-grid {
@@ -218,18 +211,29 @@
             gap: 13px;
             align-items: start;
         }
-        .stage-card, .calendar-card { height: 141px; margin-bottom: 0; } /* Remove margin bottom for grid items */
+        .stage-card, .calendar-card { height: 141px; }
         .stage-card {
             padding: 1rem 0 1rem 1rem;
-            display: flex; flex-direction: column; position: relative;
+            display: flex;
+            flex-direction: column;
+            position: relative;
         }
-        .stage-card h2 { font-size: 1.1rem; font-weight: 500; padding-left: 0.5rem; }
+        .stage-card h2 {
+            font-size: 1.1rem;
+            font-weight: 500;
+            padding-left: 0.5rem;
+        }
         .stage-list-container {
-            flex-grow: 1; position: relative; overflow: hidden; margin: 0.5rem 0;
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            margin: 0.5rem 0;
         }
         .stage-list-gradient {
-            position: absolute; inset: -1px; z-index: 2;
-            background: linear-gradient(to bottom, var(--bg-card) 5%, transparent 40%, transparent 60%, var(--bg-card) 95%);
+            position: absolute;
+            inset: -1px;
+            z-index: 2;
+            background: linear-gradient( to bottom, var(--bg-card) 5%, transparent 40%, transparent 60%, var(--bg-card) 95% );
             pointer-events: none;
         }
         .stage-item {
@@ -237,66 +241,93 @@
             transition: color 0.8s ease, font-weight 0.8s ease, opacity 0.8s ease;
         }
         .stage-item span { font-size: 1rem; }
-        .stage-item.active { color: var(--text-primary); font-weight: 600; opacity: 1; }
-        .stage-item:not(.active) { color: var(--text-secondary); font-weight: 400; opacity: 0.6; }
-        
-        /* MODIFICADO: Estilos do indicador de estágio */
-        .stage-indicator {
-            display: flex; flex-direction: column; gap: 4px;
-            position: absolute; right: 1.5rem; top: 50%;
-            transform: translateY(-50%);
-            align-items: center; /* Para centralizar a linha pontilhada */
+        .stage-item.active {
+            color: var(--text-primary);
+            font-weight: 600;
+            opacity: 1;
         }
-        /* NOVO: Linha pontilhada vermelha */
-        .stage-indicator::before {
-            content: '';
+        .stage-item:not(.active) {
+            color: var(--text-secondary);
+            font-weight: 400;
+            opacity: 0.6;
+        }
+        .stage-indicator {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
             position: absolute;
-            width: 1px;
-            height: calc(100% + 8px); /* Um pouco maior que as bolinhas */
-            background-image: linear-gradient(var(--accent-red) 40%, transparent 40%);
-            background-size: 1px 6px;
-            background-repeat: repeat-y;
-            opacity: 0.5;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
         }
         .indicator-line {
-            height: 2px; background-color: var(--text-tertiary); border-radius: 1px;
+            height: 2px;
+            background-color: var(--text-tertiary);
+            border-radius: 1px;
             transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative; /* Para ficar sobre a linha pontilhada */
         }
-        .indicator-line.active { width: 15px; background-color: var(--text-primary); }
+        .indicator-line.active {
+            width: 15px;
+            background-color: var(--text-primary);
+        }
         .indicator-line:not(.active) { width: 6px; }
-
         .stage-period {
-            font-size: 0.8rem; color: var(--text-tertiary);
-            padding-left: 0.5rem; margin-top: auto;
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            padding-left: 0.5rem;
+            margin-top: auto;
         }
-        .calendar-card { display: flex; gap: 0.5rem; padding: 1rem; }
+        .calendar-card {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+        }
         .calendar-weekdays {
-            display: flex; flex-direction: column; justify-content: space-around;
-            font-size: 0.8rem; color: var(--text-tertiary); padding: 0.1rem 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            font-size: 0.8rem;
+            color: var(--text-tertiary);
+            padding: 0.1rem 0;
         }
         .calendar-grid {
-            flex-grow: 1; display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 0.4rem; align-content: space-around;
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.4rem;
+            align-content: space-around;
         }
         .day-circle {
-            width: 10px; height: 10px; border-radius: 50%;
-            transition: all 0.5s ease; transform: scale(0); justify-self: center;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transition: all 0.5s ease;
+            transform: scale(0);
+            justify-self: center;
         }
-        /* MODIFICADO: Cores do calendário */
-        .day-circle.past { background-color: var(--accent-red-past); }
-        .day-circle.current { background-color: var(--text-primary); }
-        .day-circle.future { background-color: var(--calendar-future); }
+        .day-circle.past { background-color: var(--calendar-past); }
+        .day-circle.current { background-color: var(--accent-green); }
+        .day-circle.future { background-color: rgba(80, 80, 80, 0.3); }
         
         .nav-item {
-            display: flex; flex-direction: column; align-items: center;
-            gap: 0.25rem; text-decoration: none; color: var(--text-primary);
-            opacity: 0.5; transition: opacity 0.3s ease, transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            opacity: 0.5;
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
         .nav-item.active { opacity: 1; }
         .nav-item:not(.active):hover { opacity: 0.8; }
         .nav-item span { font-size: 0.75rem; }
-        .nav-icon-wrapper { height: 24px; display: flex; align-items: center; justify-content: center; }
+        .nav-icon-wrapper {
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
         .nav-icon-wrapper svg { max-height: 100%; }
     </style>
 </head>
@@ -304,40 +335,33 @@
 
     <header class="app-header">
         <div class="logo">
-            <!-- SVG Logo (inalterado) -->
+            <!-- SVG Logo -->
             <svg xmlns="http://www.w3.org/2000/svg" width="93" height="26" viewBox="0 0 93 26" fill="none"><path d="M26.806 21V5.88H29.452L34.912 20.454H34.114L39.532 5.88H42.22V21H40.519V6.783H40.75L35.479 21H33.421L28.15 6.909H28.381V21H26.806ZM52.2843 21.21C51.2343 21.21 50.2683 21.021 49.3863 20.643C48.5183 20.251 47.7623 19.705 47.1182 19.005C46.4743 18.291 45.9703 17.458 45.6063 16.506C45.2563 15.554 45.0813 14.511 45.0813 13.377C45.0813 11.879 45.3893 10.549 46.0053 9.387C46.6213 8.225 47.4683 7.315 48.5463 6.657C49.6383 5.999 50.8773 5.67 52.2633 5.67C53.6773 5.67 54.9233 5.999 56.0013 6.657C57.0933 7.315 57.9473 8.225 58.5633 9.387C59.1793 10.549 59.4873 11.886 59.4873 13.398C59.4873 14.532 59.3053 15.575 58.9413 16.527C58.5913 17.479 58.0943 18.305 57.4503 19.005C56.8063 19.705 56.0433 20.251 55.1613 20.643C54.2793 21.021 53.3203 21.21 52.2843 21.21ZM52.2633 19.656C53.3413 19.656 54.2863 19.39 55.0983 18.858C55.9243 18.312 56.5683 17.563 57.0303 16.611C57.4923 15.659 57.7233 14.574 57.7233 13.356C57.7233 12.152 57.4923 11.088 57.0303 10.164C56.5823 9.24 55.9453 8.519 55.1192 8.001C54.3073 7.483 53.3553 7.224 52.2633 7.224C51.1713 7.224 50.2193 7.483 49.4073 8.001C48.5953 8.519 47.9653 9.24 47.5173 10.164C47.0693 11.074 46.8453 12.138 46.8453 13.356C46.8453 14.588 47.0693 15.68 47.5173 16.632C47.9793 17.57 48.6163 18.312 49.4282 18.858C50.2403 19.39 51.1853 19.656 52.2633 19.656ZM62.346 21V5.88H67.932C69.01 5.88 69.927 6.055 70.683 6.405C71.439 6.755 72.013 7.245 72.405 7.875C72.811 8.491 73.014 9.226 73.014 10.08C73.014 10.934 72.811 11.683 72.405 12.327C72.013 12.957 71.439 13.454 70.683 13.818C69.927 14.168 69.01 14.343 67.932 14.343H63.606V12.831H67.869C68.989 12.831 69.836 12.586 70.41 12.096C70.998 11.606 71.292 10.934 71.292 10.08C71.292 9.24 71.005 8.582 70.431 8.106C69.857 7.63 69.003 7.392 67.869 7.392H64.068V21H62.346ZM71.208 21L63.165 13.503H65.517L73.812 21H71.208ZM81.0257 21.189C79.2617 21.189 77.8547 20.755 76.8047 19.887C75.7687 19.019 75.1597 17.78 74.9777 16.17H76.6577C76.8117 17.332 77.2527 18.207 77.9807 18.795C78.7087 19.383 79.7167 19.677 81.0047 19.677C82.0967 19.677 82.9157 19.474 83.4617 19.068C84.0217 18.648 84.3017 18.039 84.3017 17.241C84.3017 16.555 84.1127 16.009 83.7347 15.603C83.3567 15.197 82.7687 14.861 81.9707 14.595L79.4297 13.713C78.1417 13.265 77.1897 12.726 76.5737 12.096C75.9577 11.452 75.6497 10.64 75.6497 9.66C75.6497 8.848 75.8527 8.148 76.2587 7.56C76.6647 6.958 77.2387 6.489 77.9807 6.153C78.7227 5.817 79.5837 5.649 80.5637 5.649C82.0757 5.649 83.2867 6.048 84.1967 6.846C85.1067 7.63 85.6317 8.75 85.7717 10.206H84.0917C83.9097 9.156 83.5317 8.386 82.9577 7.896C82.3977 7.406 81.5857 7.161 80.5217 7.161C79.5137 7.161 78.7297 7.364 78.1697 7.77C77.6097 8.176 77.3297 8.75 77.3297 9.492C77.3297 10.122 77.5257 10.626 77.9177 11.004C78.3097 11.382 78.9187 11.711 79.7447 11.991L82.4537 12.936C83.6297 13.342 84.5117 13.895 85.0997 14.595C85.6877 15.281 85.9817 16.156 85.9817 17.22C85.9817 18.48 85.5477 19.46 84.6797 20.16C83.8257 20.846 82.6077 21.189 81.0257 21.189ZM88.6781 21V5.88H90.4001V21H88.6781Z" fill="#E0D7D7"></path><path d="M6.38891 18.381C6.38892 20.8707 8.51542 23 8.51542 23C8.51542 23 10.4262 21.1328 10.6419 18.7741C10.8775 16.1985 10.6419 14.9414 12.1829 12.3534C13.3617 10.3736 16.2201 8.16034 16.2201 8.16034V4.03276C16.2201 4.03276 11.4311 6.78911 9.43998 9.66724C7.41627 12.5925 6.38891 14.75 6.38891 18.381Z" fill="#E0D7D7"></path><path d="M5.49515 19.9534C5.70512 20.7346 6.35808 21.8207 6.35808 21.8207C6.35808 21.8207 2.79178 20.1172 1.1805 17.1034C-0.693476 13.5983 0.225117 8.97931 0.225117 8.97931C0.225117 8.97931 2.93719 10.9776 3.98502 13.4017C5.0197 15.7954 5.0637 18.3483 5.49515 19.9534Z" fill="#E0D7D7"></path><path d="M11.5048 19.9534C11.2949 20.7346 10.6419 21.8207 10.6419 21.8207C10.6419 21.8207 14.2082 20.1172 15.8195 17.1034C17.6935 13.5983 16.7749 8.97931 16.7749 8.97931C16.7749 8.97931 14.0628 10.9776 13.015 13.4017C11.9803 15.7954 11.9363 18.3483 11.5048 19.9534Z" fill="#E0D7D7"></path><path d="M3.4303 10.4534C4.68053 11.8638 5.92663 14.6466 5.92663 14.6466C5.92663 14.6466 6.36205 13.2352 6.75874 12.3862C7.16736 11.5117 7.9915 10.2569 7.9915 10.2569C7.9915 10.2569 6.16528 7.91231 4.75551 6.68621C3.33168 5.44788 0.77987 4 0.77987 4V8.1931C0.77987 8.1931 2.52026 9.42684 3.4303 10.4534Z" fill="#E0D7D7"></path></svg>
         </div>
     </header>
 
     <main class="app-main">
-
-        <!-- MODIFICADO: Estrutura de cards superior totalmente refeita -->
-        <section class="card metrics-card">
-            <div class="day-count-box">
-                <span id="day-count">13</span>
-                <span>days</span>
+        <section class="card count-card">
+            <div class="count-header">
+                <div class="count-main">
+                    <div class="count-top-line">
+                        <span class="count-label">Count:</span>
+                        <span id="countdown-timer"></span>
+                    </div>
+                    <div class="count-number-wrapper">
+                        <span id="day-count">0</span>
+                        <span class="count-unit">days</span>
+                    </div>
+                </div>
+                <button id="reset-button" class="reset-button">reset</button>
             </div>
-            <div class="progress-details">
-                <div class="progress-header">
-                    <h2 id="week-context-title">Going into the Second Week</h2>
-                    <button id="reset-button" class="reset-button">reset</button>
-                </div>
-                <div id="week-progress" class="week-progress">
-                    <!-- Gerado por JS -->
-                </div>
+
+            <!-- ÁREA MODIFICADA: As barras foram removidas e o canvas da animação foi inserido aqui -->
+            <div class="chart-area">
+                <canvas id="goo-canvas"></canvas>
             </div>
         </section>
 
-        <section class="card visual-card">
-            <div class="you-impulse-visual">
-                <!-- Este elemento é puramente estilizado com CSS para replicar o novo visual -->
-            </div>
-            <div class="visual-labels">
-                <span>you</span>
-                <span>impulses</span>
-            </div>
-        </section>
-        
         <div class="lower-grid">
             <section class="card stage-card">
                 <h2>Stage</h2>
@@ -350,7 +374,11 @@
             </section>
             <section class="card calendar-card">
                 <div class="calendar-weekdays">
-                    <span>S</span> <span>M</span> <span>T</span> <span>W</span> <span>T</span>
+                    <span>S</span>
+                    <span>M</span>
+                    <span>T</span>
+                    <span>W</span>
+                    <span>T</span>
                 </div>
                 <div id="calendar-grid" class="calendar-grid"></div>
             </section>
@@ -358,22 +386,239 @@
     </main>
 
     <nav class="bottom-nav">
-        <!-- Ícone "Progress" MODIFICADO para a nova versão -->
-        <a href="index.html" id="nav-home" class="nav-item">
+        <!-- Add IDs to nav items to handle navigation later -->
+        <a href="index.html" id="nav-home" class="nav-item active">
             <div class="nav-icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 23 23" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M8.78572 12.8571C8.78572 11.3581 10.0009 10.143 11.5 10.143C12.9991 10.143 14.2143 11.3581 14.2143 12.8571C14.2143 14.3562 12.9991 15.5713 11.5 15.5713C10.7802 15.5713 10.0898 15.2853 9.58073 14.7763C9.07167 14.2673 8.78572 13.5769 8.78572 12.8571Z" stroke="#F1EBEB" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M4.88664 4.81377L8.59436 2.75104C10.4025 1.74965 12.5989 1.74965 14.407 2.75104L18.1147 4.81377C19.8842 5.78101 20.989 7.63253 21 9.64893V15.3241C20.9524 18.5056 18.335 21.0462 15.1534 20.9994H7.84657C4.66498 21.0462 2.04762 18.5056 2 15.3241V9.64893C2.01125 7.63224 3.11667 5.78065 4.88664 4.81377Z" stroke="#F1EBEB" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Home</span>
         </a>
-        <a href="#" id="nav-progress" class="nav-item active"> <!-- Adicionada classe active para corresponder à imagem -->
-            <div class="nav-icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6.5" width="19" height="11" rx="5.5" stroke="#F1EBEB" stroke-width="2.2"></rect><circle cx="8" cy="12" r="1.5" fill="#F1EBEB"></circle><circle cx="12" cy="12" r="1.5" fill="#F1EBEB"></circle><circle cx="16" cy="12" r="1.5" fill="#F1EBEB"></circle></svg></div><span>Progress</span>
+        <a href="#" id="nav-progress" class="nav-item">
+            <div class="nav-icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="19" viewBox="0 0 32 19" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M0 6.78571C0 3.03807 2.98477 0 6.66667 0H25.3333C29.0152 0 32 3.03807 32 6.78571V12.2143C32 15.9619 29.0152 19 25.3333 19H6.66667C2.98477 19 0 15.9619 0 12.2143V6.78571ZM6.66667 2.71429C4.45753 2.71429 2.66667 4.53713 2.66667 6.78571V12.2143C2.66667 14.4629 4.45753 16.2857 6.66667 16.2857H25.3333C27.5425 16.2857 29.3333 14.4629 29.3333 12.2143V6.78571C29.3333 4.53713 27.5425 2.71429 25.3333 2.71429H6.66667ZM13.3333 8.14286C13.3333 6.6438 14.5272 5.42857 16 5.42857C17.4728 5.42857 18.6667 6.6438 18.6667 8.14286V10.8571C18.6667 12.3562 17.4728 13.5714 16 13.5714C14.5272 13.5714 13.3333 12.3562 13.3333 10.8571V8.14286ZM8 5.42857C6.52724 5.42857 5.33333 6.6438 5.33333 8.14286V10.8571C5.33333 12.3562 6.52724 13.5714 8 13.5714C9.47276 13.5714 10.6667 12.3562 10.6667 10.8571V8.14286C10.6667 6.6438 9.47276 5.42857 8 5.42857Z" fill="#F1EBEB"></path></svg></div><span>Progress</span>
         </a>
         <a href="#" id="nav-me" class="nav-item">
             <div class="nav-icon-wrapper"><svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 21 21" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M14.379 6.69999C14.379 4.60429 12.6392 2.89999 10.5 2.89999C8.36075 2.89999 6.62103 4.60429 6.62103 6.69999C6.62103 8.7957 8.36075 10.5 10.5 10.5C12.6392 10.5 14.379 8.7957 14.379 6.69999ZM18.0485 20H16.3185C15.7832 20 15.3487 19.5744 15.3487 19.05C15.3487 18.5256 15.7832 18.1 16.3185 18.1H16.7345C17.4055 18.1 17.9011 17.4378 17.647 16.8289C16.4726 14.0131 13.7147 12.4 10.5 12.4C7.28531 12.4 4.52736 14.0131 3.353 16.8289C3.09893 17.4378 3.59449 18.1 4.26555 18.1H4.68155C5.21684 18.1 5.65129 18.5256 5.65129 19.05C5.65129 19.5744 5.21684 20 4.68155 20H2.95153C1.73935 20 0.785127 18.9141 1.04211 17.7542C1.74808 14.5631 3.95232 12.2081 6.85572 11.1393C5.53105 10.0953 4.68155 8.4955 4.68155 6.69999C4.68155 3.32654 7.67224 0.638028 11.1973 1.03988C13.7515 1.33058 15.8675 3.32459 16.2506 5.81644C16.5803 7.9644 15.6833 9.92617 14.1443 11.1393C17.0477 12.2081 19.2519 14.5631 19.9579 17.7542C20.2149 18.9141 19.2606 20 18.0485 20ZM13.4092 19.05C13.4092 19.5744 12.9748 20 12.4395 20H8.56052C8.02522 20 7.59077 19.5744 7.59077 19.05C7.59077 18.5256 8.02522 18.1 8.56052 18.1H12.4395C12.9748 18.1 13.4092 18.5256 13.4092 19.05Z" fill="#F1EBEB"></path></svg></div><span>Me</span>
         </a>
     </nav>
+    
+    <!-- SHADERS DA ANIMAÇÃO -->
+    <script id="vert" type="x-shader/x-vertex">
+        attribute vec2 a_position;
+        varying vec2 v_uv;
+        void main() {
+          v_uv = a_position * 0.5 + 0.5;
+          gl_Position = vec4(a_position, 0.0, 1.0);
+        }
+    </script>
+    <script id="frag" type="x-shader/x-fragment">
+        precision highp float;
+        uniform vec2 iResolution;
+        uniform float iTime;
+        uniform float uDay; // 0..180
+        varying vec2 v_uv;
+
+        // --- FUNÇÕES DE RUÍDO (sem alterações) ---
+        float hash21(vec2 p) {
+          p = fract(p * vec2(123.34, 345.45));
+          p += dot(p, p + 34.345);
+          return fract(p.x * p.y);
+        }
+        float noise(vec2 p) {
+          vec2 i = floor(p); vec2 f = fract(p);
+          vec2 u = f*f*(3.0-2.0*f);
+          return mix(mix(hash21(i + vec2(0,0)), hash21(i + vec2(1,0)), u.x),
+                     mix(hash21(i + vec2(0,1)), hash21(i + vec2(1,1)), u.x), u.y);
+        }
+        float fbm(vec2 p) {
+          float f = 0.0; float amp = 0.5;
+          for(int i=0;i<6;i++){
+            f += amp * noise(p);
+            p = p*2.0 + vec2(1.7, -0.8);
+            amp *= 0.5;
+          }
+          return f;
+        }
+        vec2 curlNoise(vec2 p) {
+          float e = 0.001;
+          float n1 = fbm(p + vec2(0.0, e)); float n2 = fbm(p - vec2(0.0, e));
+          float a = (n1 - n2) / (2.0 * e);
+          n1 = fbm(p + vec2(e, 0.0)); n2 = fbm(p - vec2(e, 0.0));
+          float b = (n1 - n2) / (2.0 * e);
+          return vec2(a, -b);
+        }
+
+        // --- SDF Yin-Yang (sem alterações) ---
+        float sdYinYangShape(vec2 p, float r) {
+            float inner_r = r * 0.5; float eye_r = r * 0.13;
+            float d_left_half = p.x;
+            float d_bottom_circle = length(p - vec2(0.0, inner_r)) - inner_r;
+            float d_top_circle = length(p - vec2(0.0, -inner_r)) - inner_r;
+            float d_yin_eye_hole = length(p - vec2(0.0, inner_r)) - eye_r;
+            float yin_shape = min(d_left_half, d_bottom_circle);
+            yin_shape = max(yin_shape, -d_top_circle);
+            yin_shape = max(yin_shape, -d_yin_eye_hole);
+            float d_yang_eye = length(p - vec2(0.0, -inner_r)) - eye_r;
+            return min(yin_shape, d_yang_eye);
+        }
+
+        void main() {
+          vec2 p = (v_uv - 0.5) * vec2(iResolution.x / iResolution.y, 1.0);
+          float time = iTime * 0.6;
+          // MODIFICADO: A cor de fundo agora é transparente, não preta
+          vec3 color = vec3(0.0); 
+
+          // --- MUDANÇA 1: ESTRELA VIVA (SUPERFÍCIE E CORPO) ---
+          float radius = 0.36;
+          float dist = length(p);
+          float inside = smoothstep(radius, radius - 0.002, dist);
+          vec3 n = normalize(vec3(p, sqrt(max(0.0, radius*radius - dist*dist))));
+          vec3 lightDir = normalize(vec3(-0.4, 0.6, 0.8));
+          float lambert = clamp(dot(n, lightDir), 0.0, 1.0);
+          float spec = pow(max(dot(reflect(vec3(0.0,0.0,1.0), n), lightDir), 0.0), 16.0) * 0.6;
+          
+          // Superfície da estrela com ruído de plasma
+          vec2 sun_uv = n.xy * 3.0;
+          float sun_pattern = fbm(sun_uv + vec2(time * 0.1, -time * 0.15));
+          sun_pattern = smoothstep(0.35, 0.65, sun_pattern);
+          vec3 baseSunColor = mix(vec3(1.0, 0.7, 0.5), vec3(1.0, 0.95, 0.9), sun_pattern);
+          vec3 sunColor = baseSunColor * (0.6 + 0.5 * lambert) + spec * 0.5;
+
+          // Composição da estrela com o fundo
+          vec3 scene = mix(color, sunColor, inside);
+
+          // --- MUDANÇA 2: CORONA ATMOSFÉRICA PULSANTE ---
+          float corona = smoothstep(radius + 0.1, radius, dist) * 0.35;
+          corona *= (1.0 - smoothstep(radius, radius - 0.05, dist));
+          scene += vec3(1.0, 0.4, 0.15) * corona * (0.7 + 0.3 * sin(time*2.0));
+
+          // --- TEXTURA BASE DA GOSMA (sem alterações) ---
+          vec2 flowCoord = p * 4.0;
+          vec2 c = curlNoise(flowCoord + time * 0.4);
+          vec2 adv = flowCoord + c * 0.25 * (0.8 + fbm(flowCoord*0.5 + time*0.2));
+          float goo1 = fbm(adv * 1.2 - time * 0.3);
+          float goo2 = fbm(adv * 3.5 + time * 0.6);
+          float gooLayer = smoothstep(0.35, 0.72, goo1 * 0.6 + goo2 * 0.4);
+          float edgeNoise = fbm(flowCoord * 8.0 + time * 0.8);
+          float radialBias = smoothstep(radius + 0.05, radius - 0.08, dist);
+          float baseGoo = gooLayer * radialBias;
+          
+          float gooMask;
+
+          // --- LÓGICA DE DUAS FASES (sem rotação no clímax) ---
+          if (uDay <= 90.0) {
+            float dayNorm = clamp(uDay / 90.0, 0.0, 1.0);
+            float revealProgress = pow(dayNorm, 1.4);
+            float threshold = mix(-0.1, 1.1, revealProgress); 
+            gooMask = smoothstep(threshold, threshold + 0.1, baseGoo - 0.08*edgeNoise);
+          } else {
+            float dayNorm = clamp((uDay - 90.0) / 90.0, 0.0, 1.0);
+            float formationProgress = pow(dayNorm, 1.2);
+            
+            float yinYangDist = sdYinYangShape(p, radius);
+            float revealOffset = (1.0 - formationProgress) * 0.3;
+            float shapeMask = smoothstep(0.01, -0.01, yinYangDist + revealOffset);
+            float texturedShape = baseGoo * shapeMask;
+
+            float fill_threshold = mix(0.45, 0.15, formationProgress);
+            gooMask = smoothstep(fill_threshold, fill_threshold + 0.1, texturedShape);
+          }
+          
+          // --- COR DA GOSMA E COMPOSIÇÃO FINAL ---
+          vec3 gooColor = vec3(0.02, 0.005, 0.005) + vec3(0.5, 0.05, 0.05) * pow(gooLayer, 1.2);
+          vec3 viewDir = vec3(0.0, 0.0, 1.0);
+          float rim_dot = 1.0 - dot(n, viewDir);
+          float rim_intensity = pow(rim_dot, 3.0) * 0.8;
+          vec3 rim_color = vec3(1.0, 0.3, 0.15);
+          gooColor += rim_color * rim_intensity;
+          float gooSpec = pow(clamp(dot(normalize(vec3(p,0.6)), lightDir), 0.0, 1.0), 24.0);
+          gooColor += vec3(1.0,0.6,0.45)*gooSpec*0.12;
+
+          float gooOnSphere = gooMask * smoothstep(radius + 0.08, radius - 0.04, dist);
+          float a = clamp(gooOnSphere, 0.0, 1.0);
+          
+          // --- MUDANÇA 3: EFEITO DE REFRAÇÃO SIMULADO ---
+          vec3 refracted_scene = scene * 1.1 + 0.1;
+          vec3 final_color = mix(scene, refracted_scene, a * 0.4);
+          final_color = mix(final_color, gooColor, a);
+          
+          float peel = smoothstep(0.02, 0.0, dist - radius * 0.96) * gooOnSphere;
+          final_color += 0.1 * peel;
+
+          final_color = pow(final_color, vec3(0.9));
+
+          // MODIFICAÇÃO FINAL: Calcular a transparência (alpha)
+          // O objeto será opaco onde o sol, a corona ou a gosma estiverem visíveis.
+          float finalAlpha = max(smoothstep(radius + 0.1, radius, dist), a);
+          gl_FragColor = vec4(final_color, finalAlpha);
+        }
+    </script>
+
 
     <script>
-        // MODIFICADO: O script não é mais um `type="module"`, pois a lógica 3D foi removida
         document.addEventListener('DOMContentLoaded', async () => {
-            gsap.registerPlugin(TextPlugin); // Registrar o plugin do GSAP
+
+            // --- FUNÇÃO PARA INICIAR A ANIMAÇÃO (NOVA) ---
+            const initGooAnimation = () => {
+                const canvas = document.getElementById('goo-canvas');
+                // Pedimos um contexto com canal alfa para permitir transparência
+                const gl = canvas.getContext('webgl', { alpha: true });
+                if (!gl) { 
+                    console.error('WebGL não disponível.'); 
+                    canvas.style.display = 'none'; // Esconde o canvas se não funcionar
+                    return null; 
+                }
+
+                function compile(src, type){
+                    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+                    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){ throw new Error(gl.getShaderInfoLog(s)); }
+                    return s;
+                }
+                const vs = compile(document.getElementById('vert').textContent, gl.VERTEX_SHADER);
+                const fs = compile(document.getElementById('frag').textContent, gl.FRAGMENT_SHADER);
+                const prog = gl.createProgram();
+                gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+                if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){ throw new Error(gl.getProgramInfoLog(prog)); }
+                gl.useProgram(prog);
+
+                const posLoc = gl.getAttribLocation(prog, 'a_position');
+                const buffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+                const vertices = new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]);
+                gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+                gl.enableVertexAttribArray(posLoc);
+                gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+
+                const iRes = gl.getUniformLocation(prog, 'iResolution');
+                const iTime = gl.getUniformLocation(prog, 'iTime');
+                const uDay = gl.getUniformLocation(prog, 'uDay');
+
+                let timeStart = performance.now();
+                let currentDay = 0; // Estado interno da animação
+
+                function resize(){
+                    const dpr = Math.min(window.devicePixelRatio || 1, 2.0);
+                    const rect = canvas.getBoundingClientRect();
+                    canvas.width = Math.floor(rect.width * dpr);
+                    canvas.height = Math.floor(rect.height * dpr);
+                    gl.viewport(0,0,canvas.width, canvas.height);
+                }
+                window.addEventListener('resize', resize);
+                resize();
+
+                function render(now){
+                    gl.uniform2f(iRes, canvas.width, canvas.height);
+                    gl.uniform1f(iTime, (now - timeStart) * 0.001);
+                    gl.uniform1f(uDay, currentDay); // Usa o dia atualizado pelo app
+
+                    gl.drawArrays(gl.TRIANGLES, 0, 6);
+                    requestAnimationFrame(render);
+                }
+                requestAnimationFrame(render);
+
+                // Retorna um objeto com uma função para o app principal poder atualizar o dia
+                return {
+                    updateDay: (newDay) => {
+                        currentDay = newDay;
+                    }
+                };
+            };
 
             // --- 1. SUPABASE INITIALIZATION ---
             const SUPABASE_URL = 'https://moxwfwcfjkzhhjhrjivi.supabase.co'; 
@@ -382,28 +627,30 @@
             const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
             // --- 2. GLOBAL STATE ---
+            let gooAnimationUpdater = null; // Variável para controlar a animação
+
             const STATE = {
-                user: null, profile: null, dayCount: 0, resetTimestamp: null,
+                user: null,
+                profile: null,
+                dayCount: 0,
+                resetTimestamp: null,
+                countdownFrameId: null
             };
             
-            // MODIFICADO: Estágios em lowercase para corresponder ao design
             const ALL_STAGES = [
-                { name: "commitment",  range: [0, 1],   period: "first day" }, 
-                { name: "temptation",  range: [2, 7],   period: "first week" }, 
-                { name: "flatline",    range: [8, 14],  period: "second week" }, 
-                { name: "vitality",    range: [15, 21], period: "third week" }, 
-                { name: "conflict",    range: [22, 30], period: "fourth week" }, 
-                { name: "discipline",  range: [31, 90], period: "one month" }, 
-                { name: "magnetism",   range: [91, 180],period: "3 months" }, 
-                { name: "transcendence", range: [181, Infinity], period: "6 months" }
+                { name: "Commitment",  range: [0, 1],   period: "first day" }, { name: "Temptation",  range: [2, 7],   period: "first week" }, { name: "Flatline",    range: [8, 14],  period: "second week" }, { name: "Vitality",    range: [15, 21], period: "third week" }, { name: "Conflict",    range: [22, 30], period: "fourth week" }, { name: "Discipline",  range: [31, 90], period: "1 month" }, { name: "Magnetism",   range: [91, 180],period: "3 months" }, { name: "Transcendence", range: [181, Infinity], period: "6 months" }
             ];
 
-            // MODIFICADO: Seletores de elementos atualizados para a nova estrutura
             const elements = {
                 body: document.body,
                 dayCount: document.getElementById('day-count'),
-                weekContextTitle: document.getElementById('week-context-title'),
-                weekProgress: document.getElementById('week-progress'),
+                countdownTimer: document.getElementById('countdown-timer'),
+                // REMOVIDO: referências às barras
+                // youBar: document.getElementById('you-bar'),
+                // youBarIcon: document.getElementById('you-bar-icon'),
+                // impulsesBar: document.getElementById('impulses-bar'),
+                // impulsesBarIcon: document.getElementById('impulses-bar-icon'),
+                youBarLabel: document.getElementById('you-bar-label'), // Mantido para personalização
                 resetButton: document.getElementById('reset-button'),
                 stageList: document.getElementById('stage-list'),
                 stageIndicator: document.querySelector('.stage-indicator'),
@@ -412,121 +659,148 @@
                 cards: document.querySelectorAll('.card')
             };
             
-            // --- 3. DATA & STATE MANAGEMENT (Lógica do Supabase inalterada) ---
+            // --- 3. DATA & STATE MANAGEMENT ---
             const loadStateFromSupabase = async (userId) => {
-                const { data, error } = await _supabase.from('profiles').select('name, reset_timestamp').eq('id', userId).single();
-                if (error && error.code !== 'PGRST116') { console.error('Error fetching profile:', error); return false; }
-                if (!data) { window.location.replace('onboarding.html'); return false; }
+                const { data, error } = await _supabase
+                    .from('profiles')
+                    .select('name, reset_timestamp')
+                    .eq('id', userId)
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.error('Error fetching profile:', error);
+                    return false;
+                }
+                
+                if (!data) {
+                    window.location.replace('onboarding.html');
+                    return false;
+                }
+
                 STATE.profile = data;
                 STATE.resetTimestamp = data.reset_timestamp ? new Date(data.reset_timestamp).getTime() : null;
                 return true;
             };
+
             const saveStateToSupabase = async () => {
                 if (!STATE.user) return;
-                const { error } = await _supabase.from('profiles').update({ reset_timestamp: STATE.resetTimestamp ? new Date(STATE.resetTimestamp).toISOString() : null }).eq('id', STATE.user.id);
-                if (error) { console.error('Error saving progress:', error); }
+                const { error } = await _supabase
+                    .from('profiles')
+                    .update({ reset_timestamp: STATE.resetTimestamp ? new Date(STATE.resetTimestamp).toISOString() : null })
+                    .eq('id', STATE.user.id);
+                
+                if (error) console.error('Error saving progress:', error);
             };
+
             const calculateAndUpdateDays = () => {
-                if (!STATE.resetTimestamp) { STATE.dayCount = 0; return; }
+                if (!STATE.resetTimestamp) {
+                    STATE.dayCount = 0;
+                    return;
+                }
                 const elapsedMilliseconds = Date.now() - STATE.resetTimestamp;
-                STATE.dayCount = Math.floor(elapsedMilliseconds / (1000 * 60 * 60 * 24));
+                const elapsedDays = Math.floor(elapsedMilliseconds / (1000 * 60 * 60 * 24));
+                STATE.dayCount = elapsedDays;
             };
             
-            // --- 4. UI LOGIC ---
+            // --- 4. UI & ANIMATION LOGIC ---
+            const formatTime = (ms) => {
+                const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            };
+            
+            const startCountdown = () => {
+                if (STATE.countdownFrameId) cancelAnimationFrame(STATE.countdownFrameId);
+                if (!STATE.resetTimestamp || STATE.dayCount > 0) return;
+
+                const tick = () => {
+                    const elapsed = Date.now() - STATE.resetTimestamp;
+                    const remaining = (24 * 60 * 60 * 1000) - elapsed;
+
+                    if (remaining <= 0) {
+                        calculateAndUpdateDays();
+                        updateAll(true);
+                    } else {
+                        elements.countdownTimer.textContent = formatTime(remaining);
+                        STATE.countdownFrameId = requestAnimationFrame(tick);
+                    }
+                };
+                tick();
+            };
+
             const populateStaticContent = () => {
-                // Indicador de estágio
                 for(let i = 0; i < 7; i++) {
                     elements.stageIndicator.appendChild(document.createElement('div')).className = 'indicator-line';
                 }
-                // Progresso da semana
-                const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri']; // Removido Sábado
-                const fragment = document.createDocumentFragment();
-                weekDays.forEach(day => {
-                    const dayEl = document.createElement('div');
-                    dayEl.className = 'week-day';
-                    dayEl.innerHTML = `<div class="dot"></div><span>${day}</span>`;
-                    fragment.appendChild(dayEl);
-                });
-                elements.weekProgress.appendChild(fragment);
             };
             
-            // --- REMOVIDO: Toda a lógica do Three.js (initSunAnimation, updateSunAnimation, etc.) foi removida daqui. ---
-
-            // --- 5. CORE APP LOGIC ---
             const updateAll = (animate = true) => {
+                // ATUALIZAÇÃO: Sincroniza a animação com a contagem de dias
+                if (gooAnimationUpdater) {
+                    gooAnimationUpdater.updateDay(STATE.dayCount);
+                }
+
                 const day = STATE.dayCount;
+                
+                // Personalização do label "you" foi movida para uma função de inicialização,
+                // já que o nome não muda. Mas pode ficar aqui se precisar.
                 
                 let activeStageIndex = ALL_STAGES.findIndex(s => day >= s.range[0] && day <= s.range[1]);
                 if (activeStageIndex === -1) activeStageIndex = day > 0 ? ALL_STAGES.length - 1 : 0;
-                const activeStage = ALL_STAGES[activeStageIndex];
                 
-                // Animação do contador de dias
-                gsap.to(elements.dayCount, { 
-                    innerText: day, 
-                    duration: animate ? 1.2 : 0, 
-                    snap: { innerText: 1 }, 
-                    ease: "power2.inOut" 
-                });
-
-                // Atualizar título e progresso da semana
-                elements.weekContextTitle.textContent = `Going into the ${activeStage.period}`; // Título dinâmico
+                const tl = gsap.timeline();
+                const duration = animate ? 1.5 : 0;
                 
-                const currentDayOfWeek = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-                elements.weekProgress.querySelectorAll('.week-day').forEach((dayEl, index) => {
-                    const dot = dayEl.querySelector('.dot');
-                    dot.classList.remove('past', 'current');
-                    if(index < currentDayOfWeek) {
-                        dot.classList.add('past');
-                    } else if (index === currentDayOfWeek) {
-                        dot.classList.add('current');
-                    }
-                });
-
-                // Atualizar Stage
-                elements.stagePeriod.textContent = `this week`; // Ou pode ser dinâmico como "activeStage.period"
-                elements.stageList.innerHTML = '';
-                const stageWindow = 5;
-                const start = Math.max(0, activeStageIndex - 2);
-                const end = Math.min(ALL_STAGES.length, start + stageWindow);
-                const activeStageName = activeStage.name;
-                
-                for (let i = start; i < end; i++) {
-                    const stage = ALL_STAGES[i];
-                    const item = document.createElement('div');
-                    item.className = `stage-item`;
-                    
-                    if (stage.name === activeStageName) {
-                        item.classList.add('active');
-                        item.innerHTML = `<span>${stage.name}</span>`;
-                    } else if (i < activeStageIndex) {
-                        item.innerHTML = `<span style="text-decoration: line-through; opacity: 0.7;">${stage.name}</span>`;
-                    } else {
-                        item.innerHTML = `<span>${stage.name}</span>`;
-                    }
-                    elements.stageList.appendChild(item);
+                if (day === 0 && STATE.resetTimestamp) {
+                    gsap.to(elements.countdownTimer, { autoAlpha: 1, duration: 0.5 });
+                    startCountdown();
+                } else {
+                    gsap.to(elements.countdownTimer, { autoAlpha: 0, duration: 0.5 });
+                    if (STATE.countdownFrameId) cancelAnimationFrame(STATE.countdownFrameId);
                 }
 
-                if (elements.stageList.firstElementChild) {
-                    const itemHeight = elements.stageList.firstElementChild.offsetHeight;
-                    const containerHeight = elements.stageList.parentElement.offsetHeight;
-                    const visualIndex = Math.min(2, activeStageIndex);
-                    const offset = (containerHeight / 2) - (itemHeight / 2);
-                    const targetY = -(visualIndex * itemHeight) + offset;
-                    gsap.to(elements.stageList, { y: targetY, duration: animate ? 1.2 : 0, ease: "power3.inOut" });
-                }
+                tl.to(elements.dayCount, { textContent: day, duration: animate ? 1.2 : 0, roundProps: "textContent", ease: "power2.inOut" });
                 
-                elements.stageIndicator.querySelectorAll('.indicator-line').forEach((line, index) => line.classList.toggle('active', index === 2)); // Ajustado para o item do meio
+                // REMOVIDO: Animações das barras
+                // tl.to(elements.youBar, ...);
+                // tl.to(elements.impulsesBar, ...);
 
-                // Atualizar Calendário
+                elements.stagePeriod.textContent = ALL_STAGES[activeStageIndex].period;
+                
+                (() => {
+                    elements.stageList.innerHTML = '';
+                    const stageWindow = 5;
+                    const start = Math.max(0, activeStageIndex - 2);
+                    const end = Math.min(ALL_STAGES.length, start + stageWindow);
+
+                    for (let i = start; i < end; i++) {
+                        const item = document.createElement('div');
+                        item.className = `stage-item ${i === activeStageIndex ? 'active' : ''}`;
+                        item.innerHTML = `<span>${ALL_STAGES[i].name}</span>`;
+                        elements.stageList.appendChild(item);
+                    }
+                    if (elements.stageList.firstElementChild) {
+                        const itemHeight = elements.stageList.firstElementChild.offsetHeight;
+                        const containerHeight = elements.stageList.parentElement.offsetHeight;
+                        const visualIndex = Math.min(2, activeStageIndex);
+                        const offset = (containerHeight / 2) - (itemHeight / 2);
+                        const targetY = -(visualIndex * itemHeight) + offset;
+                        gsap.to(elements.stageList, { y: targetY, duration: animate ? 1.2 : 0, ease: "power3.inOut" });
+                    }
+                })();
+                elements.stageIndicator.querySelectorAll('.indicator-line').forEach((line, index) => line.classList.toggle('active', index === 3));
+
                 elements.calendarGrid.innerHTML = '';
-                const totalCircles = 28; // Grid maior
+                const totalCircles = 20;
                 const fragment = document.createDocumentFragment();
                 for (let i = 1; i <= totalCircles; i++) {
                     const circle = document.createElement('div');
                     circle.className = 'day-circle';
-                    if (i <= day) circle.classList.add('past');
-                    if (i === day + 1) circle.classList.add('current');
-                    if (i > day + 1) circle.classList.add('future');
+                    if (day > 0 && i < day) circle.classList.add('past');
+                    else if (day > 0 && i === day) circle.classList.add('current');
+                    else circle.classList.add('future');
                     fragment.appendChild(circle);
                 }
                 elements.calendarGrid.appendChild(fragment);
@@ -542,36 +816,53 @@
                 const confirmed = confirm("Are you sure you want to reset your progress? This action cannot be undone.");
                 if (confirmed) {
                     STATE.resetTimestamp = Date.now();
+                    STATE.dayCount = 0;
                     await saveStateToSupabase();
-                    calculateAndUpdateDays();
                     updateAll(true);
                 }
             };
 
-            // --- 6. APP INITIALIZATION & AUTHENTICATION ---
+            // --- 5. APP INITIALIZATION & AUTHENTICATION ---
+            
             const initApp = async () => {
                 const loaded = await loadStateFromSupabase(STATE.user.id);
-                if (!loaded) return; 
+                if (!loaded) return;
+
+                // INICIA A ANIMAÇÃO: Deve ser chamado aqui, depois que o DOM está pronto.
+                gooAnimationUpdater = initGooAnimation();
 
                 populateStaticContent();
                 calculateAndUpdateDays();
-                updateAll(false); 
+                updateAll(false);
                 
                 elements.body.style.opacity = '1';
-                gsap.to(elements.cards, { opacity: 1, y: 0, duration: 1, stagger: 0.15, ease: "power3.out", delay: 0.3 });
+                const tl = gsap.timeline({ delay: 0.3 });
+                tl.to(elements.cards, { opacity: 1, y: 0, duration: 1, stagger: 0.15, ease: "power3.out" })
+                  .fromTo('.day-circle', { scale: 0 }, { scale: 1, duration: 0.6, stagger: 0.03, ease: "back.out(1.7)" }, "-=0.8");
                 
                 elements.resetButton.addEventListener('click', handleReset);
             };
             
             const checkAuthAndLoad = async () => {
                 const { data: { session } } = await _supabase.auth.getSession();
-                if (!session) { window.location.replace('login.html'); return; }
+                
+                if (!session) {
+                    window.location.replace('login.html');
+                    return;
+                }
+                
                 STATE.user = session.user;
+
                 const onboardingComplete = localStorage.getItem('morsiOnboardingComplete');
-                if (onboardingComplete !== 'true') { window.location.replace('onboarding.html'); return; }
+                if (onboardingComplete !== 'true') {
+                     window.location.replace('onboarding.html');
+                     return;
+                }
+                
                 await initApp();
             };
 
+            // Inicia a aplicação
             checkAuthAndLoad();
         });
     </script>
